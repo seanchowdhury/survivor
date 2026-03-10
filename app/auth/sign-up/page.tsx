@@ -30,6 +30,7 @@ export default function SignUpForm() {
           type="text"
           required
           placeholder="Jeff Probst"
+          defaultValue={state?.fields?.name}
           className="block rounded-md w-full bg-white/5 px-2 py-1.5 placeholder:text-gray-500 text-white outline-1 outline-white/10 focus:outline-indigo-500"
         />
       </div>
@@ -47,6 +48,7 @@ export default function SignUpForm() {
           type="email"
           required
           placeholder="jeff@survivor.com"
+          defaultValue={state?.fields?.email}
           className="block rounded-md w-full bg-white/5 px-2 py-1.5 placeholder:text-gray-500 text-white outline-1 outline-white/10  focus:outline-indigo-500"
         />
       </div>
@@ -64,7 +66,26 @@ export default function SignUpForm() {
           type="password"
           required
           placeholder="*****"
+          defaultValue={state?.fields?.password}
           className="block rounded-md w-full bg-white/5 px-2 py-1.5 placeholder:text-gray-500 text-white outline-1 outline-white/10  focus:outline-indigo-500"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5 w-sm">
+        <label
+          htmlFor="code"
+          className="block text-sm font-medium text-gray-100"
+        >
+          Invite Code
+        </label>
+        <input
+          id="code"
+          name="code"
+          type="text"
+          required
+          placeholder="********"
+          defaultValue={state?.fields?.code}
+          className="block rounded-md w-full bg-white/5 px-2 py-1.5 placeholder:text-gray-500 text-white outline-1 outline-white/10 focus:outline-indigo-500"
         />
       </div>
 
