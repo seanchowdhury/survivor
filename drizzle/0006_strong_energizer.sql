@@ -1,0 +1,1 @@
+ALTER TABLE "cast_members_table" ALTER COLUMN "tribe" SET NOT NULL;

@@ -37,9 +37,9 @@ export async function signUpWithEmail(
   try {
     inviteCode = await getInviteCodeValid(code);
   } catch(_) {
-    return { error: "Invalid invite code.", fields: { name, email, password }}
+    return { error: "Invalid invite code.", fields: { name, email, password, code: undefined }}
   }
-  if(inviteCode.claimedByUserId) return { error: "Invalid invite code.", fields: { name, email, password}}
+  if(inviteCode.claimedByUserId) return { error: "Invalid invite code.", fields: { name, email, password, code: undefined }}
   
   const { data, error } = await auth.signUp.email({
     email,
@@ -50,17 +50,17 @@ export async function signUpWithEmail(
 
 
   if (error) {
-    return { error: error.message || 'Failed to create account' };
+    return { error: error.message || 'Failed to create account', fields: { name, email, password, code } };
   }
 
   await updateInviteCode(inviteCode, data.user.id);
 
-  // resend.emails.send({
-  //   from: 'no-reply@contact.seanc.how',
-  //   to: [email],
-  //   subject: 'Come on in guys',
-  //   html: `<p>Welcome, ${name} to the Survivor 50 excel spreadsheet but as an app</p>`
-  // });
+  resend.emails.send({
+    from: 'no-reply@contact.seanc.how',
+    to: [email],
+    subject: 'Come on in guys',
+    html: `<p>Welcome, ${name} to the Survivor 50 excel spreadsheet but as an app</p>`
+  });
 
   redirect("/");
 }

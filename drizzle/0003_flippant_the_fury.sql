@@ -1,0 +1,1 @@
+ALTER TABLE "episodes_table" ADD CONSTRAINT "episodes_table_episode_number_unique" UNIQUE("episode_number");
