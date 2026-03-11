@@ -31,6 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NeonAuthUIProvider
+          // @ts-expect-error: Typing issue from neon
           authClient={authClient} 
           redirectTo="/account/settings"
           emailOTP
