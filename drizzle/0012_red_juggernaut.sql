@@ -1,0 +1,1 @@
+ALTER TABLE "challenge_winners_table" ADD COLUMN "placement" integer;

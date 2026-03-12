@@ -71,7 +71,9 @@ JSON schema to return:
       "winners": ["<full player name or lowercase tribe name>"]
     }
   ]
-}`;
+}
+
+For tribal challenges, list tribes in the "winners" array in the order they placed (index 0 = 1st place, index 1 = 2nd place, etc.), as they appear in the wiki.`;
 
 export async function parseWikiWithClaude(wikitext: string): Promise<{
   episodeInfo: EpisodeInfo | null;

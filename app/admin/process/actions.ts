@@ -196,9 +196,9 @@ async function insertChallenges(
     const challengeWinners =
       challenges.find((c) => c.name == challenge.name)?.winners || [];
     if (!challenge.individualChallenge) {
-      challengeWinners.forEach((tribe) => {
+      challengeWinners.forEach((tribe, index) => {
         tribeHash[tribe].forEach((castMemberId) => {
-          winnersToInsert.push({ castMemberId, challengeId: challenge.id });
+          winnersToInsert.push({ castMemberId, challengeId: challenge.id, placement: index + 1 });
         });
       });
     } else {
