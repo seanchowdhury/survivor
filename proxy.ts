@@ -1,13 +1,26 @@
-import { auth } from '@/lib/auth/server';
+  import { auth } from '@/lib/auth/server';
+  import { NextRequest, NextResponse } from
+  'next/server';
 
-export default auth.middleware({
-  // Redirects unauthenticated users to sign-in page
-  loginUrl: '/auth/sign-in',
-});
+  export default async function middleware(req:
+  NextRequest) {
+    const { data: session } = await
+      auth.getSession();
 
-export const config = {
-  matcher: [
-    // Protected routes requiring authentication
-    '/admin/:path*',
-  ],
-};
+    if (!session?.user) {
+      return NextResponse.redirect(new
+  URL('/auth/sign-up', req.url));
+    }
+
+    // @ts-expect-error: role does exist on admin object
+    if (session.user.role !== 'admin') {
+      return NextResponse.redirect(new URL('/',
+  req.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  export const config = {
+    matcher: ['/admin/:path*'],
+  };

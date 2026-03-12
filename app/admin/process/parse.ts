@@ -1,3 +1,5 @@
+import Anthropic from "@anthropic-ai/sdk";
+
 export type EpisodeInfo = {
   seasonNumber: number | null;
   episodeNumber: number | null;
@@ -24,11 +26,6 @@ export type TribalCouncil = {
   eliminated: string;
 };
 
-type MedicalEvac = {
-  tribe: string;
-  player: string;
-};
-
 export type Challenge = {
   isReward: boolean;
   isImmunity: boolean;
@@ -36,167 +33,87 @@ export type Challenge = {
   winners: string[];
 };
 
-function cleanText(s: string): string {
-  return s
-    .replace(/\[\[.*?\|(.*?)\]\]/g, "$1") // [[Link|text]] → text
-    .replace(/\[\[(.*?)\]\]/g, "$1")      // [[Link]] → Link
-    .replace(/'{2,3}/g, "")              // ''italic'' / '''bold''' → plain
-    .replace(/<.*?>/g, "")               // strip html tags
-    .trim();
-}
+const SYSTEM_PROMPT = `You are a data extraction assistant. You will be given raw MediaWiki markup from the Survivor fandom wiki for a single episode page.
 
-export function parseMedicalEvacs(wikitext: string): MedicalEvac[] {
-  const results: MedicalEvac[] = [];
+Extract the following data and return a single raw JSON object with NO markdown code fences, NO explanation, just the JSON.
 
-  // {{tribebox|tribe|EVACUATED:<br />[[image:...|link=Player Name]]<br />Player Name}}
-  const regex = /\{\{tribebox\|([^|]+)\|EVACUATED:[\s\S]*?link=([^\]|]+)/g;
-  for (const m of wikitext.matchAll(regex)) {
-    results.push({ tribe: m[1].trim(), player: m[2].trim() });
+Rules:
+- Strip all wiki markup from text values (remove [[ ]], {{ }}, '' ''', <tags>, etc.)
+- Use exact full player names as they appear in the cast list
+- Return tribe names in lowercase
+- Return null or [] for absent/unknown sections — do NOT hallucinate data
+- For confessionals, the key is the player's full name
+
+JSON schema to return:
+{
+  "episodeInfo": {
+    "seasonNumber": <int or null>,
+    "episodeNumber": <int or null>,
+    "totalEpisodes": <int or null>,
+    "airDate": <string or null>,
+    "viewership": <string or null>
+  },
+  "confessionals": {
+    "<PlayerFullName>": [{ "tribe": "<lowercase tribe name>", "quote": "<plain text quote>" }]
+  },
+  "tribalCouncils": [
+    {
+      "tribe": "<lowercase tribe name>",
+      "eliminated": "<full player name>",
+      "votes": [{ "voter": "<full player name>", "votedFor": "<full player name>" }]
+    }
+  ],
+  "challenges": [
+    {
+      "name": "<challenge name>",
+      "isReward": <bool>,
+      "isImmunity": <bool>,
+      "winners": ["<full player name or lowercase tribe name>"]
+    }
+  ]
+}`;
+
+export async function parseWikiWithClaude(wikitext: string): Promise<{
+  episodeInfo: EpisodeInfo | null;
+  confessionals: ConfessionalsByPlayer;
+  tribalCouncils: TribalCouncil[];
+  challenges: Challenge[];
+}> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 4096,
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: wikitext,
+      },
+    ],
+  });
+
+  const text = message.content[0].type === "text" ? message.content[0].text : "";
+
+  let parsed: {
+    episodeInfo: EpisodeInfo | null;
+    confessionals: ConfessionalsByPlayer;
+    tribalCouncils: TribalCouncil[];
+    challenges: Challenge[];
+  };
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Claude returned invalid JSON. Raw response:\n${text.slice(0, 500)}`
+    );
   }
-
-  return results;
-}
-
-export function parseEpisodeInfo(wikitext: string): EpisodeInfo | null {
-  // Extract key=value pairs from {{Episode\n| key = value\n...}}
-  const templateMatch = wikitext.match(/\{\{Episode([\s\S]*?)\n\}\}/);
-  if (!templateMatch) return null;
-
-  const fields: Record<string, string> = {};
-  for (const m of templateMatch[1].matchAll(/\|\s*([\w]+)\s*=\s*([^\n|]*)/g)) {
-    fields[m[1].trim()] = m[2].trim();
-  }
-
-  // episodenumber = "2/14 (727)" → episodeNumber=2, totalEpisodes=14
-  let episodeNumber: number | null = null;
-  let totalEpisodes: number | null = null;
-  const epNumMatch = fields.episodenumber?.match(/^(\d+)\/(\d+)/);
-  if (epNumMatch) {
-    episodeNumber = parseInt(epNumMatch[1]);
-    totalEpisodes = parseInt(epNumMatch[2]);
-  }
-
-  // season = "{{S2|50}}" → 50
-  let seasonNumber: number | null = null;
-  const seasonMatch = fields.season?.match(/\|(\d+)\}\}/);
-  if (seasonMatch) seasonNumber = parseInt(seasonMatch[1]);
 
   return {
-    seasonNumber,
-    episodeNumber,
-    totalEpisodes,
-    airDate: fields.firstbroadcast ?? null,
-    viewership: fields.viewership ?? null,
+    episodeInfo: parsed.episodeInfo ?? null,
+    confessionals: parsed.confessionals ?? {},
+    tribalCouncils: parsed.tribalCouncils ?? [],
+    challenges: parsed.challenges ?? [],
   };
-}
-
-export function parseConfessionals(wikitext: string): ConfessionalsByPlayer {
-  const result: ConfessionalsByPlayer = {};
-  const regex = /\{\{Confessional\|([^|]*)\|([^|]+)\|([^|]+)\|([^|]+)\|([^}]+)\}\}/g;
-
-  let match;
-  while ((match = regex.exec(wikitext)) !== null) {
-    const [, tribe, quote, fullName] = match;
-    const player = cleanText(fullName);
-
-    if (!result[player]) result[player] = [];
-
-    result[player].push({
-      tribe: tribe.trim(),
-      quote: cleanText(quote),
-    });
-  }
-
-  return result;
-}
-
-// Extracts names from [[File:...|link=Full Name]] patterns
-function extractLinks(s: string): string[] {
-  const matches = [...s.matchAll(/link=([^\]|]+)/g)];
-  return matches.map((m) => m[1].trim());
-}
-
-export function parseTribalCouncils(wikitext: string): TribalCouncil[] {
-  const results: TribalCouncil[] = [];
-
-  const tcBlockRegex = /\{\{tribebox3\|([\w]+)\|Tribal Council[^}]+\}\}([\s\S]*?)(?=\{\{tribebox3\|[\w]+\|Tribal Council|\n==)/g;
-  let tcMatch;
-
-  while ((tcMatch = tcBlockRegex.exec(wikitext)) !== null) {
-    const [, tribe, block] = tcMatch;
-    const votes: Vote[] = [];
-
-    // Split into row segments by |-
-    for (const segment of block.split(/\n\|-\n/)) {
-      // Each segment should have two tribebox3 cells: votedFor and voters
-      const cells = [...segment.matchAll(/\{\{tribebox3\|[^|]+\|([\s\S]*?)\}\}/g)].map(m => m[1]);
-      if (cells.length < 2) continue;
-
-      const [votedForCell, votersCell] = cells;
-      if (votedForCell.includes("VOTED OUT")) continue;
-
-      const votedFor = extractLinks(votedForCell)[0];
-      if (!votedFor) continue;
-
-      for (const voter of extractLinks(votersCell)) {
-        votes.push({ voter, votedFor });
-      }
-    }
-
-    const eliminatedMatch = block.match(/VOTED OUT:[^[]*\[\[File:[^\]]*link=([^\]]+)\]/);
-    const eliminated = eliminatedMatch ? eliminatedMatch[1].trim() : "";
-
-    results.push({ tribe, votes, eliminated });
-  }
-
-  return results;
-}
-
-export function parseChallenges(wikitext: string): Challenge[] {
-  const results: Challenge[] = [];
-
-  // Challenges are inside <tabber>...</tabber>
-  const tabberMatch = wikitext.match(/<tabber>([\s\S]*?)<\/tabber>/);
-  if (!tabberMatch) return results;
-
-  const tabberContent = tabberMatch[1];
-
-  // Each tab is separated by |-|, starts with "Type="
-  const tabs = tabberContent.split(/\|-\|/);
-
-  for (const tab of tabs) {
-    const tabHeader = tab.match(/^[^=\n]*/)?.[0] ?? "";
-    const isReward = /reward/i.test(tabHeader);
-    const isImmunity = /immunity/i.test(tabHeader);
-    if (!isReward && !isImmunity) continue;
-
-    // Challenge name: try link first, then italic text before first <br />
-    const nameLinkMatch = tab.match(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\](?=.*?<br)/);
-    const nameItalicMatch = tab.match(/''+([^'<\n]+)''+/);
-    const name = nameLinkMatch ? nameLinkMatch[1].trim() : (nameItalicMatch ? nameItalicMatch[1].trim() : "");
-
-    // Winners — capture everything after the label until the next bold marker or end
-    const winnersMatch = tab.match(/'''Winners?[^']*:'''\s*([\s\S]*?)(?='''|$)/);
-    const winners: string[] = [];
-    if (winnersMatch) {
-      const winnersStr = winnersMatch[1];
-      // Tribe winners: {{tribeicon|tribename}}
-      for (const m of winnersStr.matchAll(/\{\{tribeicon\|([^}]+)\}\}/g)) {
-        winners.push(m[1].trim());
-      }
-      // Individual winners: [[link|name]] or [[name]]
-      for (const m of winnersStr.matchAll(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g)) {
-        winners.push(m[1].trim());
-      }
-      // Plain text winner (no link or template)
-      if (winners.length === 0) {
-        const plain = cleanText(winnersStr).trim();
-        if (plain) winners.push(plain);
-      }
-    }
-
-    results.push({ isReward, isImmunity, name, winners });
-  }
-
-  return results;
 }

@@ -3,12 +3,8 @@
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import {
-  parseConfessionals,
-  parseTribalCouncils,
-  parseChallenges,
-  parseMedicalEvacs,
+  parseWikiWithClaude,
   ConfessionalsByPlayer,
-  parseEpisodeInfo,
   EpisodeInfo,
   TribalCouncil,
   Challenge,
@@ -224,36 +220,67 @@ async function getEpisodeContent(episode: string): Promise<[string, string]> {
   );
   const data = await response.json();
   const title = data.query.pages[0].title;
-  const content = data.query.pages[0].revisions[0].slots.main.content;
-  return [title, content];
+  const revisions = data.query.pages[0].revisions
+  if (revisions) {
+    return [title, revisions[0].slots.main.content]
+  }
+  throw new Error('Could not find episode by title')
+}
+
+async function getEpisodeByTitle(episodeTitle: string): Promise<SelectEpisode> {
+  return takeUniqueOrThrow(await db.select().from(episodesTable).where(eq(episodesTable.title, episodeTitle)))
+}
+
+const LOWERCASE_WORDS = new Set(["a", "an", "the", "and", "but", "or", "nor", "on", "at", "to", "by", "in", "of", "up", "as", "with"]);
+
+function toTitleCase(str: string): string {
+  return str
+    .toLocaleLowerCase()
+    .split(" ")
+    .map((word, i) => (i === 0 || !LOWERCASE_WORDS.has(word) ? word.replace(/^\w/, (c) => c.toUpperCase()) : word))
+    .join(" ");
 }
 
 export async function processEpisodeWiki(
   _prevState: { error: string; fields?: { episode: string } } | null,
   formData: FormData,
 ) {
-  const episode = formData.get("episode") as string;
+  const episode = toTitleCase(formData.get("episode") as string);
 
-  const [title, contentString] = await getEpisodeContent(episode);
-  const confessionals = parseConfessionals(contentString);
-  const tribalCouncils = parseTribalCouncils(contentString);
-  const challenges = parseChallenges(contentString);
-  const medicalEvacs = parseMedicalEvacs(contentString);
-  const episodeInfo = parseEpisodeInfo(contentString);
+  let title: string;
+  let contentString: string;
+  try {
+    [title, contentString] = await getEpisodeContent(episode);
+  } catch (e: unknown) {
+    const error = e as { message: string }
+    return { error: error.message };
+  }
+
+  const episodeByTitle = await getEpisodeByTitle(title);
+  if (episodeByTitle) redirect("/admin/episode/" + episodeByTitle.id);
+
+  const { confessionals, tribalCouncils, challenges, episodeInfo } = await parseWikiWithClaude(contentString);
 
   //Parse episode number and query for episode in db
   const episodeNumber = episodeInfo?.episodeNumber;
   if (!episodeNumber) return { error: "Could not parse episode number." };
+  if (episodeInfo.seasonNumber !== 50) return { error: "Wrong season" };
 
-  let episodeRecord: SelectEpisode = await getEpisodeByNumber(episodeNumber);
-  if (!episodeRecord) {
-    try {
-      await insertEpisode(episodeInfo, title);
-      episodeRecord = await getEpisodeByNumber(episodeNumber);
-    } catch (_) {
-      //handle insertError
-      return { error: "Error adding episode to database" };
+  let episodeRecord: SelectEpisode
+  try {
+    episodeRecord = await getEpisodeByNumber(episodeNumber);
+  } catch (e: unknown) {
+      const error = e as { message: string }
+    if (error.message == 'Found no value') {
+      try {
+        await insertEpisode(episodeInfo, title);
+        episodeRecord = await getEpisodeByNumber(episodeNumber);
+      } catch (_) {
+        //handle insertError
+        return { error: "Error adding episode to database" };
+      }
     }
+    return { error: "Error adding episode to database" };
   }
 
   const episodeConfessionals = await getConfessionalsByEpisodeId(
@@ -285,6 +312,7 @@ export async function processEpisodeWiki(
       await insertChallenges(challenges, castMembers, episodeRecord.id);
     } catch (_) {
       //handle insert error
+      console.log(_)
       return { error: "Error adding challenges to db" };
     }
   }

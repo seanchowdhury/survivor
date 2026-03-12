@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { signUpWithEmail } from "./actions";
+import Link from "next/link";
 
 export default function SignUpForm() {
   const [state, formAction, isPending] = useActionState(signUpWithEmail, null);
@@ -102,6 +103,7 @@ export default function SignUpForm() {
       >
         {isPending ? "Creating account..." : "Create Account"}
       </button>
+      <Link href="/auth/sign-in">Already have an account? Sign in</Link>
     </form>
   );
 }
