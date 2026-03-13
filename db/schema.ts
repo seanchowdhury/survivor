@@ -41,6 +41,7 @@ export const castMembersTable = pgTable("cast_members_table", {
   eliminatedEpisodeId: integer("eliminated_episode_id").references(() => episodesTable.id),
   evacuated: boolean("evacuated").notNull().default(false),
   quit: boolean("quit").notNull().default(false),
+  finalPlacement: integer("final_placement"),
 });
 
 export type SelectCastMember = typeof castMembersTable.$inferSelect;
@@ -75,18 +76,31 @@ export const confessionalCountTable = pgTable("confessionals_count_table", {
 export type SelectConfessionalCount = typeof confessionalCountTable.$inferSelect;
 export type InsertConfessionalCount = typeof confessionalCountTable.$inferInsert;
 
-export const tribalVotesTable = pgTable("tribal_votes_table", {
+export const tribalCouncilsTable = pgTable("tribal_councils_table", {
   id: serial("id").primaryKey(),
   episodeId: integer("episode_id")
     .notNull()
     .references(() => episodesTable.id),
+  tribe: text("tribe").notNull(),
+  sequence: integer("sequence").notNull().default(1),
+  eliminatedCastMemberId: integer("eliminated_cast_member_id")
+    .references(() => castMembersTable.id),
+  blindsided: boolean("blindsided").notNull().default(false),
+});
+
+export type SelectTribalCouncil = typeof tribalCouncilsTable.$inferSelect;
+export type InsertTribalCouncil = typeof tribalCouncilsTable.$inferInsert;
+
+export const tribalVotesTable = pgTable("tribal_votes_table", {
+  id: serial("id").primaryKey(),
+  tribalCouncilId: integer("tribal_council_id")
+    .notNull()
+    .references(() => tribalCouncilsTable.id),
   voterId: integer("voter_id")
     .notNull()
     .references(() => castMembersTable.id),
   votedForId: integer("voted_for_id")
-    .notNull()
     .references(() => castMembersTable.id),
-  tribe: text("tribe"),
 });
 
 export type SelectTribalVotes = typeof tribalVotesTable.$inferSelect;
@@ -158,3 +172,17 @@ export const advantagesTable = pgTable("advantages_table", {
 
 export type SelectAdvantage = typeof advantagesTable.$inferSelect;
 export type InsertAdvantage = typeof advantagesTable.$inferInsert;
+
+export const miscTable = pgTable("misc_table", {
+  id: serial("id").primaryKey(),
+  episodeId: integer("episode_id")
+    .notNull()
+    .references(() => episodesTable.id),
+  castMemberId: integer("cast_member_id")
+    .notNull()
+    .references(() => castMembersTable.id),
+  value: text("value").notNull(),
+});
+
+export type SelectMisc = typeof miscTable.$inferSelect;
+export type InsertMisc = typeof miscTable.$inferInsert;

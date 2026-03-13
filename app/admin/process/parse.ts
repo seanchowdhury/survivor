@@ -22,8 +22,9 @@ type Vote = {
 
 export type TribalCouncil = {
   tribe: string;
+  sequence: number;
   votes: Vote[];
-  eliminated: string;
+  eliminated: string | null;
 };
 
 export type Challenge = {
@@ -71,7 +72,8 @@ JSON schema to return:
   "tribalCouncils": [
     {
       "tribe": "<lowercase tribe name>",
-      "eliminated": "<full player name>",
+      "sequence": <int, 1 for initial vote, 2 for revote after a tie>,
+      "eliminated": "<full player name or null if no one was eliminated (e.g. tie on initial vote)>",
       "votes": [{ "voter": "<full player name>", "votedFor": "<full player name>" }]
     }
   ],
@@ -102,7 +104,8 @@ JSON schema to return:
 }
 
 For tribal challenges, list tribes in the "winners" array in the order they placed (index 0 = 1st place, index 1 = 2nd place, etc.), as they appear in the wiki.
-For idols and advantages, only include ones found or transferred in this episode — not previously found ones.`;
+For idols and advantages, only include ones found or transferred in this episode — not previously found ones.
+For tribal councils: if a vote ends in a tie and the tribe revotes, emit TWO objects for that tribe — sequence 1 (the initial tied vote, eliminated: null) and sequence 2 (the revote, with the actual eliminated player). If there is no tie, emit one object with sequence 1 and the eliminated player.`;
 
 export async function parseWikiWithClaude(wikitext: string): Promise<{
   episodeInfo: EpisodeInfo | null;

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import {
   parseWikiWithClaude,
   ConfessionalsByPlayer,
@@ -20,6 +20,7 @@ import {
   episodesTable,
   idolsTable,
   advantagesTable,
+  tribalCouncilsTable,
   InsertChallenge,
   InsertChallengeWinner,
   InsertConfessional,
@@ -30,7 +31,6 @@ import {
   SelectChallenge,
   SelectConfessional,
   SelectEpisode,
-  SelectTribalVotes,
   tribalVotesTable,
 } from "@/db/schema";
 import { takeUniqueOrThrow } from "@/db/helpers";
@@ -106,13 +106,11 @@ async function getCastMembers(): Promise<SelectCastMember[]> {
   return db.select().from(castMembersTable);
 }
 
-async function getTribalVotesByEpisodeId(
-  episodeId: number,
-): Promise<SelectTribalVotes[]> {
+async function getTribalCouncilsByEpisodeId(episodeId: number) {
   return await db
     .select()
-    .from(tribalVotesTable)
-    .where(eq(tribalVotesTable.episodeId, episodeId));
+    .from(tribalCouncilsTable)
+    .where(eq(tribalCouncilsTable.episodeId, episodeId));
 }
 
 async function insertTribalVotes(
@@ -120,29 +118,41 @@ async function insertTribalVotes(
   castMembers: SelectCastMember[],
   episodeId: number,
 ) {
-  const tribalVotesToInsert: InsertTribalVotes[] = [];
-  const castHash: Record<string, { id: number; tribe: string }> = {};
+  const castHash: Record<string, { id: number }> = {};
+  castMembers.forEach((c) => (castHash[c.name] = { id: c.id }));
 
-  castMembers.forEach(
-    (castMember) =>
-      (castHash[castMember.name] = {
-        id: castMember.id,
-        tribe: castMember.tribe,
-      }),
-  );
+  for (const tc of tribalCouncils) {
+    const eliminatedId = tc.eliminated ? castHash[tc.eliminated]?.id ?? null : null;
 
-  tribalCouncils.forEach((tribalCouncil) => {
-    tribalCouncil.votes.forEach((vote) => {
-      tribalVotesToInsert.push({
-        voterId: castHash[vote.voter].id,
-        votedForId: castHash[vote.votedFor].id,
-        episodeId,
-        tribe: castHash[vote.voter].tribe,
-      });
-    });
-  });
+    const [council] = await db
+      .insert(tribalCouncilsTable)
+      .values({ episodeId, tribe: tc.tribe, sequence: tc.sequence, eliminatedCastMemberId: eliminatedId })
+      .returning({ id: tribalCouncilsTable.id });
 
-  await db.insert(tribalVotesTable).values(tribalVotesToInsert);
+    const votesToInsert: InsertTribalVotes[] = tc.votes
+      .filter((v) => castHash[v.voter] && castHash[v.votedFor])
+      .map((v) => ({
+        tribalCouncilId: council.id,
+        voterId: castHash[v.voter].id,
+        votedForId: castHash[v.votedFor].id,
+      }));
+
+    if (votesToInsert.length) await db.insert(tribalVotesTable).values(votesToInsert);
+
+    // Insert null-votedFor rows for tribe members who didn't vote (e.g. shot in the dark)
+    const voterIds = new Set(votesToInsert.map((v) => v.voterId));
+    const tribeRoster = castMembers.filter(
+      (c) => c.tribe === tc.tribe && c.eliminatedEpisodeId === null,
+    );
+    const nonVoters: InsertTribalVotes[] = tribeRoster
+      .filter((c) => !voterIds.has(c.id))
+      .map((c) => ({
+        tribalCouncilId: council.id,
+        voterId: c.id,
+        votedForId: null,
+      }));
+    if (nonVoters.length) await db.insert(tribalVotesTable).values(nonVoters);
+  }
 }
 
 async function getChallengesByEpisodeId(
@@ -255,6 +265,41 @@ async function insertAdvantages(
   );
 }
 
+async function getNextPlacement(): Promise<number> {
+  const placed = await db
+    .select({ finalPlacement: castMembersTable.finalPlacement })
+    .from(castMembersTable)
+    .where(isNotNull(castMembersTable.finalPlacement));
+  if (!placed.length) {
+    const all = await db.select({ id: castMembersTable.id }).from(castMembersTable);
+    return all.length;
+  }
+  return Math.min(...placed.map((r) => r.finalPlacement!)) - 1;
+}
+
+async function processEliminations(
+  tribalCouncils: TribalCouncil[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  const eliminated = tribalCouncils.map((tc) => tc.eliminated).filter((e): e is string => !!e);
+  if (!eliminated.length) return;
+
+  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  const alreadySet = castMembers.filter((c) => c.eliminatedEpisodeId === episodeId && eliminated.includes(c.name));
+  if (alreadySet.length === eliminated.length) return;
+
+  let nextPlacement = await getNextPlacement();
+  for (const name of eliminated) {
+    const id = castHash[name];
+    if (!id) continue;
+    await db.update(castMembersTable)
+      .set({ eliminatedEpisodeId: episodeId, finalPlacement: nextPlacement, tribe: "Eliminated" })
+      .where(eq(castMembersTable.id, id));
+    nextPlacement -= 1;
+  }
+}
+
 async function updateEvacuatedAndQuit(
   evacuated: string[],
   quit: string[],
@@ -262,16 +307,16 @@ async function updateEvacuatedAndQuit(
   episodeId: number,
 ) {
   const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
-  const ops: Promise<unknown>[] = [];
-  evacuated.forEach((name) => {
+  const all = [...evacuated.map((name) => ({ name, evac: true, quit: false })), ...quit.map((name) => ({ name, evac: false, quit: true }))];
+  let nextPlacement = await getNextPlacement();
+  for (const { name, evac, quit: isQuit } of all) {
     const id = castHash[name];
-    if (id) ops.push(db.update(castMembersTable).set({ evacuated: true, eliminatedEpisodeId: episodeId }).where(eq(castMembersTable.id, id)));
-  });
-  quit.forEach((name) => {
-    const id = castHash[name];
-    if (id) ops.push(db.update(castMembersTable).set({ quit: true, eliminatedEpisodeId: episodeId }).where(eq(castMembersTable.id, id)));
-  });
-  await Promise.all(ops);
+    if (!id) continue;
+    await db.update(castMembersTable)
+      .set({ evacuated: evac, quit: isQuit, eliminatedEpisodeId: episodeId, finalPlacement: nextPlacement })
+      .where(eq(castMembersTable.id, id));
+    nextPlacement -= 1;
+  }
 }
 
 async function getEpisodeByTitle(episodeTitle: string): Promise<SelectEpisode> {
@@ -295,7 +340,7 @@ async function processConfessionals(confessionals: ConfessionalsByPlayer, episod
 }
 
 async function processTribalVotes(tribalCouncils: TribalCouncil[], castMembers: SelectCastMember[], episodeId: number) {
-  const existing = await getTribalVotesByEpisodeId(episodeId);
+  const existing = await getTribalCouncilsByEpisodeId(episodeId);
   if (existing.length) return;
   await insertTribalVotes(tribalCouncils, castMembers, episodeId);
 }
@@ -317,6 +362,7 @@ async function processAdvantages(advantages: AdvantageEvent[], castMembers: Sele
   if (existing.length) return;
   await insertAdvantages(advantages, castMembers, episodeId);
 }
+
 
 export async function processEpisodeWiki(
   _prevState: { error: string; fields?: { episode: string } } | null,
@@ -377,6 +423,9 @@ export async function processEpisodeWiki(
 
   try { await updateEvacuatedAndQuit(evacuated, quit, castMembers, episodeRecord.id); }
   catch (_) { return { error: "Error updating evacuated/quit players" }; }
+
+  try { await processEliminations(tribalCouncils, castMembers, episodeRecord.id); }
+  catch (_) { return { error: "Error processing eliminations" }; }
 
   redirect("/admin/episode/" + episodeRecord.id);
 }

@@ -15,9 +15,10 @@ import {
 import { Challenge, Winner, updateChallenges } from './actions';
 import { SelectCastMember } from '@/db/schema';
 import React, { useMemo, useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Toggle } from '@/components/ui/toggle';
 import { Button } from '@/components/ui/button';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Tick03Icon } from '@hugeicons/core-free-icons';
 
 export type PendingChallengeChanges = Record<
   string,
@@ -112,51 +113,41 @@ export default function EpisodeChallengeWinners({
               key={challenge.challengeId + challenge.challengeName}
             >
               <h1>{challenge.challengeName}</h1>
-              <Field orientation="horizontal" className="w-fit">
-                <FieldLabel
-                  htmlFor={`switch-reward-${challenge.challengeId}`}
-                >
-                  Reward Challenge?
-                </FieldLabel>
-                <Switch
-                  defaultChecked={challenge.isReward}
-                  onCheckedChange={(checked) =>
-                    updateChallenge(challenge.challengeId, {
-                      isReward: checked,
-                    })
+              <div className="flex gap-2">
+                <Toggle
+                  variant="outline"
+                  size="sm"
+                  defaultPressed={challenge.isReward}
+                  onPressedChange={(pressed) =>
+                    updateChallenge(challenge.challengeId, { isReward: pressed })
                   }
-                />
-              </Field>
-              <Field orientation="horizontal" className="w-fit">
-                <FieldLabel
-                  htmlFor={`switch-immunity-${challenge.challengeId}`}
                 >
-                  Immunity Challenge?
-                </FieldLabel>
-                <Switch
-                  defaultChecked={challenge.isImmunity}
-                  onCheckedChange={(checked) =>
-                    updateChallenge(challenge.challengeId, {
-                      isImmunity: checked,
-                    })
+                  <HugeiconsIcon icon={Tick03Icon} className="group-data-[state=on]/toggle:fill-foreground" />
+                  Reward
+                </Toggle>
+                <Toggle
+                  variant="outline"
+                  size="sm"
+                  defaultPressed={challenge.isImmunity}
+                  onPressedChange={(pressed) =>
+                    updateChallenge(challenge.challengeId, { isImmunity: pressed })
                   }
-                />
-              </Field>
-              <Field orientation="horizontal" className="w-fit">
-                <FieldLabel
-                  htmlFor={`switch-individual-${challenge.challengeId}`}
                 >
-                  Individual Challenge?
-                </FieldLabel>
-                <Switch
-                  defaultChecked={challenge.individualChallenge}
-                  onCheckedChange={(checked) =>
-                    updateChallenge(challenge.challengeId, {
-                      individualChallenge: checked,
-                    })
+                  <HugeiconsIcon icon={Tick03Icon} className="group-data-[state=on]/toggle:fill-foreground" />
+                  Immunity
+                </Toggle>
+                <Toggle
+                  variant="outline"
+                  size="sm"
+                  defaultPressed={challenge.individualChallenge}
+                  onPressedChange={(pressed) =>
+                    updateChallenge(challenge.challengeId, { individualChallenge: pressed })
                   }
-                />
-              </Field>
+                >
+                  <HugeiconsIcon icon={Tick03Icon} className="group-data-[state=on]/toggle:fill-foreground" />
+                  Individual
+                </Toggle>
+              </div>
               <WinnersComboBox
                 challenge={challenge}
                 castMemberNames={castMemberNames}

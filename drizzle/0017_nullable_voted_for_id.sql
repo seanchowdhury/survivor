@@ -1,0 +1,1 @@
+ALTER TABLE "tribal_votes_table" ALTER COLUMN "voted_for_id" DROP NOT NULL;

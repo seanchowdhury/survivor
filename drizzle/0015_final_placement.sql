@@ -1,0 +1,1 @@
+ALTER TABLE "cast_members_table" ADD COLUMN "final_placement" integer;

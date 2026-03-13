@@ -1,18 +1,24 @@
-'use server';
+"use server";
 
-import { db } from '@/db';
-import { and, eq } from 'drizzle-orm';
+import { db } from "@/db";
+import { and, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import {
   castMembersTable,
   challengesTable,
   challengeWinnersTable,
   confessionalCountTable,
   episodesTable,
+  tribalCouncilsTable,
   SelectCastMember,
-} from '@/db/schema';
-import { takeUniqueOrThrow } from '@/db/helpers';
-import { PendingChallengeChanges } from './episode-challenge-winners';
-import { PendingConfessionalChanges } from './episode-confessional-count';
+  tribalVotesTable,
+  idolsTable,
+  advantagesTable,
+  miscTable,
+} from "@/db/schema";
+import { takeUniqueOrThrow } from "@/db/helpers";
+import { PendingChallengeChanges } from "./episode-challenge-winners";
+import { PendingConfessionalChanges } from "./episode-confessional-count";
 
 export async function getEpisodeDetails(episodeId: number) {
   const episodeDetails = takeUniqueOrThrow(
@@ -27,9 +33,7 @@ export async function getEpisodeDetails(episodeId: number) {
   };
 }
 
-export async function getEpisodeConfessionalCounts(
-  episodeId: number,
-) {
+export async function getEpisodeConfessionalCounts(episodeId: number) {
   const results = await db
     .select()
     .from(confessionalCountTable)
@@ -134,14 +138,24 @@ export async function updateChallenges(
   for (const [challengeIdStr, changes] of Object.entries(pendingChanges)) {
     const challengeId = parseInt(challengeIdStr);
 
-    if (changes.isReward !== undefined || changes.isImmunity !== undefined || changes.individualChallenge !== undefined) {
+    if (
+      changes.isReward !== undefined ||
+      changes.isImmunity !== undefined ||
+      changes.individualChallenge !== undefined
+    ) {
       ops.push(
         db
           .update(challengesTable)
           .set({
-            ...(changes.isReward !== undefined && { isReward: changes.isReward }),
-            ...(changes.isImmunity !== undefined && { isImmunity: changes.isImmunity }),
-            ...(changes.individualChallenge !== undefined && { individualChallenge: changes.individualChallenge }),
+            ...(changes.isReward !== undefined && {
+              isReward: changes.isReward,
+            }),
+            ...(changes.isImmunity !== undefined && {
+              isImmunity: changes.isImmunity,
+            }),
+            ...(changes.individualChallenge !== undefined && {
+              individualChallenge: changes.individualChallenge,
+            }),
           })
           .where(eq(challengesTable.id, challengeId)),
       );
@@ -181,4 +195,230 @@ export async function updateChallenges(
   }
 
   await Promise.all(ops);
+}
+
+export type VoteWithCouncil = {
+  voteId: number;
+  voterId: number;
+  votedForId: number | null;
+  tribalCouncilId: number;
+  tribe: string;
+  sequence: number;
+  eliminatedCastMemberId: number | null;
+  blindsided: boolean;
+};
+
+export async function getEpisodeVoteData(
+  episodeId: number,
+): Promise<VoteWithCouncil[]> {
+  const rows = await db
+    .select()
+    .from(tribalVotesTable)
+    .innerJoin(
+      tribalCouncilsTable,
+      eq(tribalCouncilsTable.id, tribalVotesTable.tribalCouncilId),
+    )
+    .where(eq(tribalCouncilsTable.episodeId, episodeId));
+
+  return rows.map((r) => ({
+    voteId: r.tribal_votes_table.id,
+    voterId: r.tribal_votes_table.voterId,
+    votedForId: r.tribal_votes_table.votedForId,
+    tribalCouncilId: r.tribal_votes_table.tribalCouncilId,
+    tribe: r.tribal_councils_table.tribe,
+    sequence: r.tribal_councils_table.sequence,
+    eliminatedCastMemberId: r.tribal_councils_table.eliminatedCastMemberId,
+    blindsided: r.tribal_councils_table.blindsided,
+  }));
+}
+
+export async function updateTribalVotes(
+  pendingChanges: Record<number, number | null>,
+) {
+  await Promise.all(
+    Object.entries(pendingChanges).map(([voteId, votedForId]) =>
+      db
+        .update(tribalVotesTable)
+        .set({ votedForId })
+        .where(eq(tribalVotesTable.id, parseInt(voteId))),
+    ),
+  );
+}
+
+export async function deleteTribalVote(voteId: number) {
+  await db.delete(tribalVotesTable).where(eq(tribalVotesTable.id, voteId));
+}
+
+export async function updateTribalCouncilBlindsided(
+  councilId: number,
+  blindsided: boolean,
+) {
+  await db
+    .update(tribalCouncilsTable)
+    .set({ blindsided })
+    .where(eq(tribalCouncilsTable.id, councilId));
+}
+
+export type IdolOrAdvantage = {
+  id: number;
+  label: string | null;
+  foundByName: string;
+  foundInEpisodeId: number;
+  currentHolderName: string | null;
+  currentHolderId: number | null;
+  usedByName: string | null;
+  usedByCastMemberId: number | null;
+  usedInEpisodeId: number | null;
+};
+
+export async function getIdolsAndAdvantages(): Promise<{
+  idols: IdolOrAdvantage[];
+  advantages: IdolOrAdvantage[];
+}> {
+  const foundBy = alias(castMembersTable, "found_by");
+  const holder = alias(castMembersTable, "holder");
+  const usedBy = alias(castMembersTable, "used_by");
+
+  const [idolRows, advantageRows] = await Promise.all([
+    db
+      .select({
+        item: idolsTable,
+        foundBy: { name: foundBy.name },
+        holder: { name: holder.name },
+        usedBy: { name: usedBy.name },
+      })
+      .from(idolsTable)
+      .leftJoin(foundBy, eq(foundBy.id, idolsTable.foundByCastMemberId))
+      .leftJoin(holder, eq(holder.id, idolsTable.currentHolderId))
+      .leftJoin(usedBy, eq(usedBy.id, idolsTable.usedByCastMemberId)),
+    db
+      .select({
+        item: advantagesTable,
+        foundBy: { name: foundBy.name },
+        holder: { name: holder.name },
+        usedBy: { name: usedBy.name },
+      })
+      .from(advantagesTable)
+      .leftJoin(foundBy, eq(foundBy.id, advantagesTable.foundByCastMemberId))
+      .leftJoin(holder, eq(holder.id, advantagesTable.currentHolderId))
+      .leftJoin(usedBy, eq(usedBy.id, advantagesTable.usedByCastMemberId)),
+  ]);
+
+  const idolsMapped = idolRows.map((r) => ({
+    id: r.item.id,
+    label: r.item.label,
+    foundByName: r.foundBy!.name,
+    foundInEpisodeId: r.item.foundInEpisodeId,
+    currentHolderName: r.holder?.name ?? null,
+    currentHolderId: r.item.currentHolderId,
+    usedByName: r.usedBy?.name ?? null,
+    usedByCastMemberId: r.item.usedByCastMemberId,
+    usedInEpisodeId: r.item.usedInEpisodeId,
+  }));
+
+  const advantagesMapped = advantageRows.map((r) => ({
+    id: r.item.id,
+    label: r.item.label,
+    foundByName: r.foundBy!.name,
+    foundInEpisodeId: r.item.foundInEpisodeId,
+    currentHolderName: r.holder?.name ?? null,
+    currentHolderId: r.item.currentHolderId,
+    usedByName: r.usedBy?.name ?? null,
+    usedByCastMemberId: r.item.usedByCastMemberId,
+    usedInEpisodeId: r.item.usedInEpisodeId,
+  }));
+
+  return { idols: idolsMapped, advantages: advantagesMapped };
+}
+
+export async function updateIdolUsed(
+  idolId: number,
+  usedByCastMemberId: number | null,
+  usedInEpisodeId: number | null,
+) {
+  await db
+    .update(idolsTable)
+    .set({ usedByCastMemberId, usedInEpisodeId })
+    .where(eq(idolsTable.id, idolId));
+}
+
+export async function updateAdvantageUsed(
+  advantageId: number,
+  usedByCastMemberId: number | null,
+  usedInEpisodeId: number | null,
+) {
+  await db
+    .update(advantagesTable)
+    .set({ usedByCastMemberId, usedInEpisodeId })
+    .where(eq(advantagesTable.id, advantageId));
+}
+
+export async function createIdol(
+  foundByCastMemberId: number,
+  foundInEpisodeId: number,
+  label: string | null,
+  currentHolderId: number | null,
+) {
+  await db.insert(idolsTable).values({
+    foundByCastMemberId,
+    foundInEpisodeId,
+    label: label || null,
+    currentHolderId: currentHolderId ?? foundByCastMemberId,
+  });
+}
+
+export type MiscEntry = {
+  id: number;
+  castMemberId: number;
+  castMemberName: string;
+  value: string;
+};
+
+export async function getMiscEntries(episodeId: number): Promise<MiscEntry[]> {
+  const rows = await db
+    .select()
+    .from(miscTable)
+    .innerJoin(
+      castMembersTable,
+      eq(castMembersTable.id, miscTable.castMemberId),
+    )
+    .where(eq(miscTable.episodeId, episodeId));
+  return rows.map((r) => ({
+    id: r.misc_table.id,
+    castMemberId: r.misc_table.castMemberId,
+    castMemberName: r.cast_members_table.name,
+    value: r.misc_table.value,
+  }));
+}
+
+export async function createMiscEntry(
+  episodeId: number,
+  castMemberId: number,
+  value: string,
+) {
+  await db.insert(miscTable).values({ episodeId, castMemberId, value });
+}
+
+export async function deleteMiscEntry(id: number) {
+  await db.delete(miscTable).where(eq(miscTable.id, id));
+}
+
+export async function createAdvantage(
+  foundByCastMemberId: number,
+  foundInEpisodeId: number,
+  label: string | null,
+  currentHolderId: number | null,
+) {
+  await db.insert(advantagesTable).values({
+    foundByCastMemberId,
+    foundInEpisodeId,
+    label: label || null,
+    currentHolderId: currentHolderId ?? foundByCastMemberId,
+  });
+}
+
+export async function getEpisodes() {
+  return (await db.select().from(episodesTable)).sort(
+    (a, b) => a.episodeNumber! - b.episodeNumber!,
+  );
 }
