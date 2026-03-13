@@ -1,16 +1,18 @@
-"use server";
+'use server';
 
-import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { db } from '@/db';
+import { and, eq } from 'drizzle-orm';
 import {
   castMembersTable,
   challengesTable,
   challengeWinnersTable,
   confessionalCountTable,
   episodesTable,
-} from "@/db/schema";
-import { takeUniqueOrThrow } from "@/db/helpers";
-import { PendingChanges } from "./episode-confessional-count";
+  SelectCastMember,
+} from '@/db/schema';
+import { takeUniqueOrThrow } from '@/db/helpers';
+import { PendingChallengeChanges } from './episode-challenge-winners';
+import { PendingConfessionalChanges } from './episode-confessional-count';
 
 export async function getEpisodeDetails(episodeId: number) {
   const episodeDetails = takeUniqueOrThrow(
@@ -25,7 +27,9 @@ export async function getEpisodeDetails(episodeId: number) {
   };
 }
 
-export async function getEpisodeConfessionalCounts(episodeId: number) {
+export async function getEpisodeConfessionalCounts(
+  episodeId: number,
+) {
   const results = await db
     .select()
     .from(confessionalCountTable)
@@ -51,7 +55,7 @@ export async function getEpisodeConfessionalCounts(episodeId: number) {
 }
 
 export async function updateEpisodeConfessionalCounts(
-  pendingChanges: PendingChanges,
+  pendingChanges: PendingConfessionalChanges,
 ) {
   await Promise.all(
     Object.entries(pendingChanges).map(([id, count]) =>
@@ -63,9 +67,22 @@ export async function updateEpisodeConfessionalCounts(
   );
 }
 
+export async function getCastMembers(): Promise<SelectCastMember[]> {
+  return await db.select().from(castMembersTable);
+}
+
+export type Winner = {
+  castMemberId: number;
+  castMemberName: string;
+  placement: number;
+};
+
 export type Challenge = {
   challengeName: string;
-  winners: { castMemberId: number; castMemberName: string }[];
+  winners: Winner[];
+  isReward: boolean;
+  isImmunity: boolean;
+  individualChallenge: boolean;
 };
 
 export async function getEpisodeChallengeWinners(
@@ -89,6 +106,7 @@ export async function getEpisodeChallengeWinners(
     const formattedWinner = {
       castMemberId: winner.challenge_winners_table.castMemberId,
       castMemberName: winner.cast_members_table.name,
+      placement: winner.challenge_winners_table.placement,
     };
     const challenge = challengeRecord[winner.challenges_table.id];
     if (challenge) {
@@ -96,9 +114,71 @@ export async function getEpisodeChallengeWinners(
     } else {
       challengeRecord[winner.challenge_winners_table.challengeId] = {
         challengeName: winner.challenges_table.name,
+        isReward: winner.challenges_table.isReward,
+        isImmunity: winner.challenges_table.isImmunity,
+        individualChallenge: winner.challenges_table.individualChallenge,
         winners: [formattedWinner],
       };
     }
   });
   return challengeRecord;
+}
+
+export async function updateChallenges(
+  pendingChanges: PendingChallengeChanges,
+  castMembers: SelectCastMember[],
+) {
+  const nameToId = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  const ops: Promise<unknown>[] = [];
+
+  for (const [challengeIdStr, changes] of Object.entries(pendingChanges)) {
+    const challengeId = parseInt(challengeIdStr);
+
+    if (changes.isReward !== undefined || changes.isImmunity !== undefined || changes.individualChallenge !== undefined) {
+      ops.push(
+        db
+          .update(challengesTable)
+          .set({
+            ...(changes.isReward !== undefined && { isReward: changes.isReward }),
+            ...(changes.isImmunity !== undefined && { isImmunity: changes.isImmunity }),
+            ...(changes.individualChallenge !== undefined && { individualChallenge: changes.individualChallenge }),
+          })
+          .where(eq(challengesTable.id, challengeId)),
+      );
+    }
+
+    for (const [placement, names] of [
+      [1, changes.firstPlace],
+      [2, changes.secondPlace],
+    ] as const) {
+      if (!names) continue;
+
+      const castMemberIds = names.map((name) => nameToId[name]).filter(Boolean);
+
+      ops.push(
+        (async () => {
+          await db
+            .delete(challengeWinnersTable)
+            .where(
+              and(
+                eq(challengeWinnersTable.challengeId, challengeId),
+                eq(challengeWinnersTable.placement, placement),
+              ),
+            );
+
+          if (castMemberIds.length > 0) {
+            await db.insert(challengeWinnersTable).values(
+              castMemberIds.map((castMemberId) => ({
+                challengeId,
+                castMemberId,
+                placement,
+              })),
+            );
+          }
+        })(),
+      );
+    }
+  }
+
+  await Promise.all(ops);
 }

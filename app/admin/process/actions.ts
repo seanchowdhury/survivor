@@ -8,6 +8,8 @@ import {
   EpisodeInfo,
   TribalCouncil,
   Challenge,
+  IdolEvent,
+  AdvantageEvent,
 } from "./parse";
 import {
   castMembersTable,
@@ -16,6 +18,8 @@ import {
   confessionalCountTable,
   confessionalsTable,
   episodesTable,
+  idolsTable,
+  advantagesTable,
   InsertChallenge,
   InsertChallengeWinner,
   InsertConfessional,
@@ -31,6 +35,7 @@ import {
 } from "@/db/schema";
 import { takeUniqueOrThrow } from "@/db/helpers";
 import { redirect } from "next/navigation";
+import { getEpisodeContent } from "@/app/admin/lib/wiki";
 
 async function getEpisodeByNumber(
   episodeNumber: number,
@@ -206,6 +211,7 @@ async function insertChallenges(
         winnersToInsert.push({
           castMemberId: castHash[individual],
           challengeId: challenge.id,
+          placement: 1,
         });
       });
     }
@@ -214,17 +220,58 @@ async function insertChallenges(
   await db.insert(challengeWinnersTable).values(winnersToInsert);
 }
 
-async function getEpisodeContent(episode: string): Promise<[string, string]> {
-  const response = await fetch(
-    `https://survivor.fandom.com/api.php?action=query&titles=${episode}&prop=revisions&rvprop=content&rvslots=main&format=json&formatversion=2`,
+
+async function insertIdols(
+  idols: IdolEvent[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  if (!idols.length) return;
+  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  await db.insert(idolsTable).values(
+    idols.map((idol) => ({
+      label: idol.label,
+      foundByCastMemberId: castHash[idol.foundBy],
+      foundInEpisodeId: episodeId,
+      currentHolderId: idol.givenTo ? castHash[idol.givenTo] : castHash[idol.foundBy],
+    })),
   );
-  const data = await response.json();
-  const title = data.query.pages[0].title;
-  const revisions = data.query.pages[0].revisions
-  if (revisions) {
-    return [title, revisions[0].slots.main.content]
-  }
-  throw new Error('Could not find episode by title')
+}
+
+async function insertAdvantages(
+  advantages: AdvantageEvent[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  if (!advantages.length) return;
+  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  await db.insert(advantagesTable).values(
+    advantages.map((advantage) => ({
+      label: advantage.label,
+      foundByCastMemberId: castHash[advantage.foundBy],
+      foundInEpisodeId: episodeId,
+      currentHolderId: advantage.givenTo ? castHash[advantage.givenTo] : castHash[advantage.foundBy],
+    })),
+  );
+}
+
+async function updateEvacuatedAndQuit(
+  evacuated: string[],
+  quit: string[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  const ops: Promise<unknown>[] = [];
+  evacuated.forEach((name) => {
+    const id = castHash[name];
+    if (id) ops.push(db.update(castMembersTable).set({ evacuated: true, eliminatedEpisodeId: episodeId }).where(eq(castMembersTable.id, id)));
+  });
+  quit.forEach((name) => {
+    const id = castHash[name];
+    if (id) ops.push(db.update(castMembersTable).set({ quit: true, eliminatedEpisodeId: episodeId }).where(eq(castMembersTable.id, id)));
+  });
+  await Promise.all(ops);
 }
 
 async function getEpisodeByTitle(episodeTitle: string): Promise<SelectEpisode> {
@@ -241,6 +288,36 @@ function toTitleCase(str: string): string {
     .join(" ");
 }
 
+async function processConfessionals(confessionals: ConfessionalsByPlayer, episodeId: number) {
+  const existing = await getConfessionalsByEpisodeId(episodeId);
+  if (existing.length) return;
+  await insertConfessionals(confessionals, episodeId);
+}
+
+async function processTribalVotes(tribalCouncils: TribalCouncil[], castMembers: SelectCastMember[], episodeId: number) {
+  const existing = await getTribalVotesByEpisodeId(episodeId);
+  if (existing.length) return;
+  await insertTribalVotes(tribalCouncils, castMembers, episodeId);
+}
+
+async function processChallenges(challenges: Challenge[], castMembers: SelectCastMember[], episodeId: number) {
+  const existing = await getChallengesByEpisodeId(episodeId);
+  if (existing.length) return;
+  await insertChallenges(challenges, castMembers, episodeId);
+}
+
+async function processIdols(idols: IdolEvent[], castMembers: SelectCastMember[], episodeId: number) {
+  const existing = await db.select().from(idolsTable).where(eq(idolsTable.foundInEpisodeId, episodeId));
+  if (existing.length) return;
+  await insertIdols(idols, castMembers, episodeId);
+}
+
+async function processAdvantages(advantages: AdvantageEvent[], castMembers: SelectCastMember[], episodeId: number) {
+  const existing = await db.select().from(advantagesTable).where(eq(advantagesTable.foundInEpisodeId, episodeId));
+  if (existing.length) return;
+  await insertAdvantages(advantages, castMembers, episodeId);
+}
+
 export async function processEpisodeWiki(
   _prevState: { error: string; fields?: { episode: string } } | null,
   formData: FormData,
@@ -252,70 +329,54 @@ export async function processEpisodeWiki(
   try {
     [title, contentString] = await getEpisodeContent(episode);
   } catch (e: unknown) {
-    const error = e as { message: string }
+    const error = e as { message: string };
     return { error: error.message };
   }
 
   const episodeByTitle = await getEpisodeByTitle(title);
   if (episodeByTitle) redirect("/admin/episode/" + episodeByTitle.id);
 
-  const { confessionals, tribalCouncils, challenges, episodeInfo } = await parseWikiWithClaude(contentString);
+  const { confessionals, tribalCouncils, challenges, episodeInfo, idols, advantages, evacuated, quit } = await parseWikiWithClaude(contentString);
 
-  //Parse episode number and query for episode in db
   const episodeNumber = episodeInfo?.episodeNumber;
   if (!episodeNumber) return { error: "Could not parse episode number." };
   if (episodeInfo.seasonNumber !== 50) return { error: "Wrong season" };
 
-  let episodeRecord: SelectEpisode
+  let episodeRecord: SelectEpisode;
   try {
     episodeRecord = await getEpisodeByNumber(episodeNumber);
   } catch (e: unknown) {
-      const error = e as { message: string }
+    const error = e as { message: string };
     if (error.message == 'Found no value') {
       try {
         await insertEpisode(episodeInfo, title);
         episodeRecord = await getEpisodeByNumber(episodeNumber);
       } catch (_) {
-        //handle insertError
         return { error: "Error adding episode to database" };
       }
     }
     return { error: "Error adding episode to database" };
   }
 
-  const episodeConfessionals = await getConfessionalsByEpisodeId(
-    episodeRecord.id,
-  );
-  if (!episodeConfessionals.length) {
-    try {
-      await insertConfessionals(confessionals, episodeRecord.id);
-    } catch (_) {
-      // handle insert error
-      return { error: "Error adding confessionals to database" };
-    }
-  }
-
   const castMembers = await getCastMembers();
-  const tribalVotes = await getTribalVotesByEpisodeId(episodeRecord.id);
-  if (!tribalVotes.length) {
-    try {
-      await insertTribalVotes(tribalCouncils, castMembers, episodeRecord.id);
-    } catch (_) {
-      // handle insert error
-      return { error: "Error adding tribal votes to db" };
-    }
-  }
 
-  const queriedChallenges = await getChallengesByEpisodeId(episodeRecord.id);
-  if (!queriedChallenges.length) {
-    try {
-      await insertChallenges(challenges, castMembers, episodeRecord.id);
-    } catch (_) {
-      //handle insert error
-      console.log(_)
-      return { error: "Error adding challenges to db" };
-    }
-  }
+  try { await processConfessionals(confessionals, episodeRecord.id); }
+  catch (_) { return { error: "Error adding confessionals to database" }; }
+
+  try { await processTribalVotes(tribalCouncils, castMembers, episodeRecord.id); }
+  catch (_) { return { error: "Error adding tribal votes to db" }; }
+
+  try { await processChallenges(challenges, castMembers, episodeRecord.id); }
+  catch (_) { return { error: "Error adding challenges to db" }; }
+
+  try { await processIdols(idols, castMembers, episodeRecord.id); }
+  catch (_) { return { error: "Error adding idols to db" }; }
+
+  try { await processAdvantages(advantages, castMembers, episodeRecord.id); }
+  catch (_) { return { error: "Error adding advantages to db" }; }
+
+  try { await updateEvacuatedAndQuit(evacuated, quit, castMembers, episodeRecord.id); }
+  catch (_) { return { error: "Error updating evacuated/quit players" }; }
 
   redirect("/admin/episode/" + episodeRecord.id);
 }

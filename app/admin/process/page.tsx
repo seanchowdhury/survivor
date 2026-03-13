@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { processEpisodeWiki } from "./actions";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function ProcessWiki() {
   const [state, formAction, isPending] = useActionState(processEpisodeWiki, null);
@@ -24,13 +26,12 @@ export default function ProcessWiki() {
         >
           Episode Name
         </label>
-        <input
+        <Input
           id="episode"
           name="episode"
           type="text"
           required
           placeholder="Epic Party"
-          className="block rounded-md w-full bg-white/5 px-2 py-1.5 placeholder:text-gray-500 text-white outline-1 outline-white/10 focus:outline-indigo-500"
         />
       </div>
 
@@ -40,13 +41,13 @@ export default function ProcessWiki() {
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="flex w-sm justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400"
+        className="w-sm"
       >
         {isPending ? "Processing..." : "Process Episode"}
-      </button>
+      </Button>
     </form>
   );
 }

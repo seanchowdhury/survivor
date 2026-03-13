@@ -2,6 +2,9 @@
 
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { updateEpisodeConfessionalCounts } from "./actions";
 
 type Confessionals = {
@@ -20,7 +23,7 @@ const columns = [
   columnHelper.accessor((row) => row.confessionalCount, {
     id: 'confessionalCount',
     cell: (info) => (
-      <input
+      <Input
         type="number"
         defaultValue={info.getValue()}
         onChange={(e) => info.table.options.meta?.updateConfessionalCount(
@@ -40,18 +43,19 @@ declare module '@tanstack/react-table' {
   }
 }
 
-export type PendingChanges = Record<string, number>
+export type PendingConfessionalChanges = Record<string, number>;
 
 export default function EpisodeConfessionalCount({
   confessionalsByPlayer,
 }: {
   confessionalsByPlayer: Record<
     string,
-    { confessionalCount: number; castMemberName: string } 
+    { confessionalCount: number; castMemberName: string }
   >;
 }) {
-  
-  const [pendingChanges, setPendingChanges] = useState<PendingChanges>({})
+
+  const [pendingChanges, setPendingChanges] =
+    useState<PendingConfessionalChanges>({});
 
   const [tableData, setTableData] = useState<Confessionals[]>(
     Object.keys(confessionalsByPlayer).map((id) => {
@@ -76,37 +80,37 @@ export default function EpisodeConfessionalCount({
 
 return (
     <div className="p-2">
-      <table>
-        <thead>
+      <Table>
+        <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
+            <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id}>
+                <TableHead key={header.id}>
                   {header.isPlaceholder
                     ? null
                     : flexRender(
                         header.column.columnDef.header,
                         header.getContext(),
                       )}
-                </th>
+                </TableHead>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </thead>
-        <tbody>
+        </TableHeader>
+        <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
+            <TableRow key={row.id}>
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>
+                <TableCell key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>  
-      </table>
+        </TableBody>
+      </Table>
       <div className="h-4" />
-      <button
+      <Button
         disabled={Object.keys(pendingChanges).length === 0}
         onClick={async () => {
           await updateEpisodeConfessionalCounts(pendingChanges)
@@ -114,7 +118,7 @@ return (
         }}
       >
         Save Changes
-      </button>
+      </Button>
     </div>
   )
 }

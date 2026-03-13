@@ -33,6 +33,18 @@ export type Challenge = {
   winners: string[];
 };
 
+export type IdolEvent = {
+  label: string;
+  foundBy: string;
+  givenTo: string | null;
+};
+
+export type AdvantageEvent = {
+  label: string;
+  foundBy: string;
+  givenTo: string | null;
+};
+
 const SYSTEM_PROMPT = `You are a data extraction assistant. You will be given raw MediaWiki markup from the Survivor fandom wiki for a single episode page.
 
 Extract the following data and return a single raw JSON object with NO markdown code fences, NO explanation, just the JSON.
@@ -70,16 +82,37 @@ JSON schema to return:
       "isImmunity": <bool>,
       "winners": ["<full player name or lowercase tribe name>"]
     }
-  ]
+  ],
+  "idols": [
+    {
+      "label": "<idol name e.g. Hidden Immunity Idol>",
+      "foundBy": "<full player name>",
+      "givenTo": "<full player name or null if not transferred this episode>"
+    }
+  ],
+  "advantages": [
+    {
+      "label": "<advantage name e.g. Extra Vote, Steal-a-Vote>",
+      "foundBy": "<full player name>",
+      "givenTo": "<full player name or null if not transferred this episode>"
+    }
+  ],
+  "evacuated": ["<full player name>"],
+  "quit": ["<full player name>"]
 }
 
-For tribal challenges, list tribes in the "winners" array in the order they placed (index 0 = 1st place, index 1 = 2nd place, etc.), as they appear in the wiki.`;
+For tribal challenges, list tribes in the "winners" array in the order they placed (index 0 = 1st place, index 1 = 2nd place, etc.), as they appear in the wiki.
+For idols and advantages, only include ones found or transferred in this episode — not previously found ones.`;
 
 export async function parseWikiWithClaude(wikitext: string): Promise<{
   episodeInfo: EpisodeInfo | null;
   confessionals: ConfessionalsByPlayer;
   tribalCouncils: TribalCouncil[];
   challenges: Challenge[];
+  idols: IdolEvent[];
+  advantages: AdvantageEvent[];
+  evacuated: string[];
+  quit: string[];
 }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -102,6 +135,10 @@ export async function parseWikiWithClaude(wikitext: string): Promise<{
     confessionals: ConfessionalsByPlayer;
     tribalCouncils: TribalCouncil[];
     challenges: Challenge[];
+    idols: IdolEvent[];
+    advantages: AdvantageEvent[];
+    evacuated: string[];
+    quit: string[];
   };
 
   try {
@@ -117,5 +154,9 @@ export async function parseWikiWithClaude(wikitext: string): Promise<{
     confessionals: parsed.confessionals ?? {},
     tribalCouncils: parsed.tribalCouncils ?? [],
     challenges: parsed.challenges ?? [],
+    idols: parsed.idols ?? [],
+    advantages: parsed.advantages ?? [],
+    evacuated: parsed.evacuated ?? [],
+    quit: parsed.quit ?? [],
   };
 }

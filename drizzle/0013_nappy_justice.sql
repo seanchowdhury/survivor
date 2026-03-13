@@ -1,0 +1,3 @@
+ALTER TABLE "challenge_winners_table" ALTER COLUMN "placement" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "cast_members_table" ADD COLUMN "eliminated_episode_id" integer;--> statement-breakpoint
+ALTER TABLE "cast_members_table" ADD CONSTRAINT "cast_members_table_eliminated_episode_id_episodes_table_id_fk" FOREIGN KEY ("eliminated_episode_id") REFERENCES "public"."episodes_table"("id") ON DELETE no action ON UPDATE no action;

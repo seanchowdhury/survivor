@@ -27,6 +27,7 @@ export const episodesTable = pgTable("episodes_table", {
   eliminatedCastaways: text("eliminated_castaways"), // comma-separated
   wikiUrl: text("wiki_url"),
   importedAt: timestamp("imported_at").defaultNow(),
+  mergeOccurred: boolean("merge_occurred").notNull().default(false),
 });
 
 export type SelectEpisode = typeof episodesTable.$inferSelect;
@@ -37,6 +38,9 @@ export const castMembersTable = pgTable("cast_members_table", {
   name: text("name").notNull().unique(),
   seasonNumber: integer("season_number"),
   tribe: text("tribe").notNull(),
+  eliminatedEpisodeId: integer("eliminated_episode_id").references(() => episodesTable.id),
+  evacuated: boolean("evacuated").notNull().default(false),
+  quit: boolean("quit").notNull().default(false),
 });
 
 export type SelectCastMember = typeof castMembersTable.$inferSelect;
@@ -109,8 +113,48 @@ export const challengeWinnersTable = pgTable("challenge_winners_table", {
   castMemberId: integer("cast_member_id")
     .notNull()
     .references(() => castMembersTable.id),
-  placement: integer("placement"),
+  placement: integer("placement").notNull(),
 });
 
 export type SelectChallengeWinner = typeof challengeWinnersTable.$inferSelect;
 export type InsertChallengeWinner = typeof challengeWinnersTable.$inferInsert;
+
+export const idolsTable = pgTable("idols_table", {
+  id: serial("id").primaryKey(),
+  label: text("label"),
+  foundByCastMemberId: integer("found_by_cast_member_id")
+    .notNull()
+    .references(() => castMembersTable.id),
+  foundInEpisodeId: integer("found_in_episode_id")
+    .notNull()
+    .references(() => episodesTable.id),
+  currentHolderId: integer("current_holder_id")
+    .references(() => castMembersTable.id),
+  usedByCastMemberId: integer("used_by_cast_member_id")
+    .references(() => castMembersTable.id),
+  usedInEpisodeId: integer("used_in_episode_id")
+    .references(() => episodesTable.id),
+});
+
+export type SelectIdol = typeof idolsTable.$inferSelect;
+export type InsertIdol = typeof idolsTable.$inferInsert;
+
+export const advantagesTable = pgTable("advantages_table", {
+  id: serial("id").primaryKey(),
+  label: text("label"),
+  foundByCastMemberId: integer("found_by_cast_member_id")
+    .notNull()
+    .references(() => castMembersTable.id),
+  foundInEpisodeId: integer("found_in_episode_id")
+    .notNull()
+    .references(() => episodesTable.id),
+  currentHolderId: integer("current_holder_id")
+    .references(() => castMembersTable.id),
+  usedByCastMemberId: integer("used_by_cast_member_id")
+    .references(() => castMembersTable.id),
+  usedInEpisodeId: integer("used_in_episode_id")
+    .references(() => episodesTable.id),
+});
+
+export type SelectAdvantage = typeof advantagesTable.$inferSelect;
+export type InsertAdvantage = typeof advantagesTable.$inferInsert;
