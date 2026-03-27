@@ -1,11 +1,11 @@
-import { authClient } from '@/lib/auth/client'; 
-import { NeonAuthUIProvider, UserButton } from '@neondatabase/auth/react'; 
+import { authClient } from "@/lib/auth/client";
+import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,8 +18,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'My Neon App',
-  description: 'A Next.js application with Neon Auth',
+  title: "Survivor League",
+  description: "A survivor fantasy leage website",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>",
+  },
 };
 
 export default function RootLayout({
@@ -28,18 +31,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", figtree.variable)}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn("font-sans", figtree.variable)}
+    >
       <body
-        suppressHydrationWarning  
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NeonAuthUIProvider
           // @ts-expect-error: Typing issue from neon
-          authClient={authClient} 
+          authClient={authClient}
           redirectTo="/account/settings"
           emailOTP
         >
-          <header className='flex justify-end items-center p-4 gap-4 h-16'>
+          <header className="flex justify-end items-center p-4 gap-4 h-16">
             <UserButton size="icon" />
           </header>
           {children}
