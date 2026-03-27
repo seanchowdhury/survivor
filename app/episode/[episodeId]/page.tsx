@@ -183,12 +183,12 @@ export default async function EpisodeShowPage({
             <div className="flex flex-col gap-6">
               {tribalVotes.map((council) => (
                 <div key={council.councilId}>
-                  <p className="text-sm font-semibold capitalize text-gray-300 mb-2">
-                    {council.tribe}
+                  <div className="flex items-center gap-2 mb-2">
+                    <TribeBadge tribe={council.tribe} />
                     {council.sequence > 1 && (
-                      <span className="ml-2 text-xs text-gray-500">(Revote)</span>
+                      <span className="text-xs text-gray-500">(Revote)</span>
                     )}
-                  </p>
+                  </div>
                   <div className="flex flex-col gap-1">
                     {council.votes.map((v, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm">
