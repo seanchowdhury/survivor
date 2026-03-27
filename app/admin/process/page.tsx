@@ -21,17 +21,17 @@ export default function ProcessWiki() {
 
       <div className="flex flex-col gap-1.5 w-sm">
         <label
-          htmlFor="url"
+          htmlFor="episode"
           className="block text-sm font-medium text-gray-100"
         >
-          Episode Name
+          Wiki URL
         </label>
         <Input
           id="episode"
           name="episode"
-          type="text"
+          type="url"
           required
-          placeholder="Epic Party"
+          placeholder="https://survivor.fandom.com/wiki/Epic_Party"
         />
       </div>
 

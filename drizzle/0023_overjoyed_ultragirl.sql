@@ -1,0 +1,1 @@
+ALTER TABLE "challenges_table" ALTER COLUMN "tribe" SET DATA TYPE text[] USING CASE WHEN tribe IS NULL THEN NULL ELSE ARRAY[tribe] END;

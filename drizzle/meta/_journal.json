@@ -141,6 +141,48 @@
       "when": 1773443068531,
       "tag": "0019_bored_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1773524325913,
+      "tag": "0020_curious_moonstone",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1774645304374,
+      "tag": "0021_past_arclight",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1774645702091,
+      "tag": "0022_groovy_adam_warlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1774645890082,
+      "tag": "0023_overjoyed_ultragirl",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1774646618429,
+      "tag": "0024_powerful_nekra",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774647678907,
+      "tag": "0025_tiresome_iceman",
+      "breakpoints": true
     }
   ]
 }

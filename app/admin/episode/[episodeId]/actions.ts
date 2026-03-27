@@ -19,6 +19,7 @@ import {
 import { takeUniqueOrThrow } from "@/db/helpers";
 import { PendingChallengeChanges } from "./episode-challenge-winners";
 import { PendingConfessionalChanges } from "./episode-confessional-count";
+import { recalculateEpisodeScores } from "@/app/admin/leaderboard/actions";
 
 export async function getEpisodeDetails(episodeId: number) {
   const episodeDetails = takeUniqueOrThrow(
@@ -61,14 +62,19 @@ export async function getEpisodeConfessionalCounts(episodeId: number) {
 export async function updateEpisodeConfessionalCounts(
   pendingChanges: PendingConfessionalChanges,
 ) {
-  await Promise.all(
+  const updates = await Promise.all(
     Object.entries(pendingChanges).map(([id, count]) =>
       db
         .update(confessionalCountTable)
         .set({ count })
-        .where(eq(confessionalCountTable.id, parseInt(id))),
+        .where(eq(confessionalCountTable.id, parseInt(id)))
+        .returning({ episodeId: confessionalCountTable.episodeId }),
     ),
   );
+
+  // Recalculate scores for all affected episodes
+  const episodeIds = [...new Set(updates.flatMap((rows) => rows.map((r) => r.episodeId)))];
+  await Promise.all(episodeIds.map((episodeId) => recalculateEpisodeScores(episodeId)));
 }
 
 export async function getCastMembers(): Promise<SelectCastMember[]> {

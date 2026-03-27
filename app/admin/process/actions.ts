@@ -2,6 +2,7 @@
 
 import { db } from "@/db";
 import { eq, isNotNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   parseWikiWithClaude,
   ConfessionalsByPlayer,
@@ -13,6 +14,7 @@ import {
 } from "./parse";
 import {
   castMembersTable,
+  castMemberEpisodeTribeTable,
   challengesTable,
   challengeWinnersTable,
   confessionalCountTable,
@@ -73,7 +75,10 @@ async function insertConfessionals(
 ) {
   const castMembers = await db.select().from(castMembersTable);
   const confessionalsToInsert: InsertConfessional[] = [];
-  const confessionalsPerCastMember: Record<string, { count: number, id: number }> = {};
+  const confessionalsPerCastMember: Record<
+    string,
+    { count: number; id: number }
+  > = {};
   castMembers.forEach((castMember) => {
     confessionalsPerCastMember[castMember.id] = { count: 0, id: castMember.id };
   });
@@ -122,11 +127,18 @@ async function insertTribalVotes(
   castMembers.forEach((c) => (castHash[c.name] = { id: c.id }));
 
   for (const tc of tribalCouncils) {
-    const eliminatedId = tc.eliminated ? castHash[tc.eliminated]?.id ?? null : null;
+    const eliminatedId = tc.eliminated
+      ? (castHash[tc.eliminated]?.id ?? null)
+      : null;
 
     const [council] = await db
       .insert(tribalCouncilsTable)
-      .values({ episodeId, tribe: tc.tribe, sequence: tc.sequence, eliminatedCastMemberId: eliminatedId })
+      .values({
+        episodeId,
+        tribe: tc.tribe,
+        sequence: tc.sequence,
+        eliminatedCastMemberId: eliminatedId,
+      })
       .returning({ id: tribalCouncilsTable.id });
 
     const votesToInsert: InsertTribalVotes[] = tc.votes
@@ -137,7 +149,8 @@ async function insertTribalVotes(
         votedForId: castHash[v.votedFor].id,
       }));
 
-    if (votesToInsert.length) await db.insert(tribalVotesTable).values(votesToInsert);
+    if (votesToInsert.length)
+      await db.insert(tribalVotesTable).values(votesToInsert);
 
     // Insert null-votedFor rows for tribe members who didn't vote (e.g. shot in the dark)
     const voterIds = new Set(votesToInsert.map((v) => v.voterId));
@@ -170,21 +183,17 @@ async function insertChallenges(
   episodeId: number,
 ) {
   const challengesToInsert: InsertChallenge[] = [];
+  const TRIBE_NAMES = ["kalo", "cila", "vatu"];
   challenges.forEach((challenge) => {
-    let individualChallenge = true;
-    if (
-      challenge.winners.includes("kalo") ||
-      challenge.winners.includes("cila") ||
-      challenge.winners.includes("vatu")
-    ) {
-      individualChallenge = false;
-    }
+    const winningTribes = challenge.winners.filter((w) => TRIBE_NAMES.includes(w));
+    const individualChallenge = winningTribes.length === 0;
     challengesToInsert.push({
       episodeId,
       name: challenge.name,
       isReward: challenge.isReward,
       isImmunity: challenge.isImmunity,
       individualChallenge,
+      tribe: winningTribes.length > 0 ? winningTribes : null,
     });
   });
 
@@ -213,7 +222,11 @@ async function insertChallenges(
     if (!challenge.individualChallenge) {
       challengeWinners.forEach((tribe, index) => {
         tribeHash[tribe].forEach((castMemberId) => {
-          winnersToInsert.push({ castMemberId, challengeId: challenge.id, placement: index + 1 });
+          winnersToInsert.push({
+            castMemberId,
+            challengeId: challenge.id,
+            placement: index + 1,
+          });
         });
       });
     } else {
@@ -230,20 +243,23 @@ async function insertChallenges(
   await db.insert(challengeWinnersTable).values(winnersToInsert);
 }
 
-
 async function insertIdols(
   idols: IdolEvent[],
   castMembers: SelectCastMember[],
   episodeId: number,
 ) {
   if (!idols.length) return;
-  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  const castHash: Record<string, number> = Object.fromEntries(
+    castMembers.map((c) => [c.name, c.id]),
+  );
   await db.insert(idolsTable).values(
     idols.map((idol) => ({
       label: idol.label,
       foundByCastMemberId: castHash[idol.foundBy],
       foundInEpisodeId: episodeId,
-      currentHolderId: idol.givenTo ? castHash[idol.givenTo] : castHash[idol.foundBy],
+      currentHolderId: idol.givenTo
+        ? castHash[idol.givenTo]
+        : castHash[idol.foundBy],
     })),
   );
 }
@@ -254,13 +270,17 @@ async function insertAdvantages(
   episodeId: number,
 ) {
   if (!advantages.length) return;
-  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
+  const castHash: Record<string, number> = Object.fromEntries(
+    castMembers.map((c) => [c.name, c.id]),
+  );
   await db.insert(advantagesTable).values(
     advantages.map((advantage) => ({
       label: advantage.label,
       foundByCastMemberId: castHash[advantage.foundBy],
       foundInEpisodeId: episodeId,
-      currentHolderId: advantage.givenTo ? castHash[advantage.givenTo] : castHash[advantage.foundBy],
+      currentHolderId: advantage.givenTo
+        ? castHash[advantage.givenTo]
+        : castHash[advantage.foundBy],
     })),
   );
 }
@@ -271,7 +291,9 @@ async function getNextPlacement(): Promise<number> {
     .from(castMembersTable)
     .where(isNotNull(castMembersTable.finalPlacement));
   if (!placed.length) {
-    const all = await db.select({ id: castMembersTable.id }).from(castMembersTable);
+    const all = await db
+      .select({ id: castMembersTable.id })
+      .from(castMembersTable);
     return all.length;
   }
   return Math.min(...placed.map((r) => r.finalPlacement!)) - 1;
@@ -282,19 +304,30 @@ async function processEliminations(
   castMembers: SelectCastMember[],
   episodeId: number,
 ) {
-  const eliminated = tribalCouncils.map((tc) => tc.eliminated).filter((e): e is string => !!e);
+  const eliminated = tribalCouncils
+    .map((tc) => tc.eliminated)
+    .filter((e): e is string => !!e);
   if (!eliminated.length) return;
 
-  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
-  const alreadySet = castMembers.filter((c) => c.eliminatedEpisodeId === episodeId && eliminated.includes(c.name));
+  const castHash: Record<string, number> = Object.fromEntries(
+    castMembers.map((c) => [c.name, c.id]),
+  );
+  const alreadySet = castMembers.filter(
+    (c) => c.eliminatedEpisodeId === episodeId && eliminated.includes(c.name),
+  );
   if (alreadySet.length === eliminated.length) return;
 
   let nextPlacement = await getNextPlacement();
   for (const name of eliminated) {
     const id = castHash[name];
     if (!id) continue;
-    await db.update(castMembersTable)
-      .set({ eliminatedEpisodeId: episodeId, finalPlacement: nextPlacement, tribe: "Eliminated" })
+    await db
+      .update(castMembersTable)
+      .set({
+        eliminatedEpisodeId: episodeId,
+        finalPlacement: nextPlacement,
+        tribe: "Eliminated",
+      })
       .where(eq(castMembersTable.id, id));
     nextPlacement -= 1;
   }
@@ -306,69 +339,123 @@ async function updateEvacuatedAndQuit(
   castMembers: SelectCastMember[],
   episodeId: number,
 ) {
-  const castHash: Record<string, number> = Object.fromEntries(castMembers.map((c) => [c.name, c.id]));
-  const all = [...evacuated.map((name) => ({ name, evac: true, quit: false })), ...quit.map((name) => ({ name, evac: false, quit: true }))];
+  const castHash: Record<string, number> = Object.fromEntries(
+    castMembers.map((c) => [c.name, c.id]),
+  );
+  const all = [
+    ...evacuated.map((name) => ({ name, evac: true, quit: false })),
+    ...quit.map((name) => ({ name, evac: false, quit: true })),
+  ];
   let nextPlacement = await getNextPlacement();
   for (const { name, evac, quit: isQuit } of all) {
     const id = castHash[name];
     if (!id) continue;
-    await db.update(castMembersTable)
-      .set({ evacuated: evac, quit: isQuit, eliminatedEpisodeId: episodeId, finalPlacement: nextPlacement })
+    await db
+      .update(castMembersTable)
+      .set({
+        evacuated: evac,
+        quit: isQuit,
+        eliminatedEpisodeId: episodeId,
+        finalPlacement: nextPlacement,
+      })
       .where(eq(castMembersTable.id, id));
     nextPlacement -= 1;
   }
 }
 
 async function getEpisodeByTitle(episodeTitle: string): Promise<SelectEpisode> {
-  return takeUniqueOrThrow(await db.select().from(episodesTable).where(eq(episodesTable.title, episodeTitle)))
+  return takeUniqueOrThrow(
+    await db
+      .select()
+      .from(episodesTable)
+      .where(eq(episodesTable.title, episodeTitle)),
+  );
 }
 
-const LOWERCASE_WORDS = new Set(["a", "an", "the", "and", "but", "or", "nor", "on", "at", "to", "by", "in", "of", "up", "as", "with"]);
-
-function toTitleCase(str: string): string {
-  return str
-    .toLocaleLowerCase()
-    .split(" ")
-    .map((word, i) => (i === 0 || !LOWERCASE_WORDS.has(word) ? word.replace(/^\w/, (c) => c.toUpperCase()) : word))
-    .join(" ");
-}
-
-async function processConfessionals(confessionals: ConfessionalsByPlayer, episodeId: number) {
+async function processConfessionals(
+  confessionals: ConfessionalsByPlayer,
+  episodeId: number,
+) {
   const existing = await getConfessionalsByEpisodeId(episodeId);
   if (existing.length) return;
   await insertConfessionals(confessionals, episodeId);
 }
 
-async function processTribalVotes(tribalCouncils: TribalCouncil[], castMembers: SelectCastMember[], episodeId: number) {
+async function processTribalVotes(
+  tribalCouncils: TribalCouncil[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
   const existing = await getTribalCouncilsByEpisodeId(episodeId);
   if (existing.length) return;
   await insertTribalVotes(tribalCouncils, castMembers, episodeId);
 }
 
-async function processChallenges(challenges: Challenge[], castMembers: SelectCastMember[], episodeId: number) {
+async function processChallenges(
+  challenges: Challenge[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
   const existing = await getChallengesByEpisodeId(episodeId);
   if (existing.length) return;
   await insertChallenges(challenges, castMembers, episodeId);
 }
 
-async function processIdols(idols: IdolEvent[], castMembers: SelectCastMember[], episodeId: number) {
-  const existing = await db.select().from(idolsTable).where(eq(idolsTable.foundInEpisodeId, episodeId));
+async function processIdols(
+  idols: IdolEvent[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  const existing = await db
+    .select()
+    .from(idolsTable)
+    .where(eq(idolsTable.foundInEpisodeId, episodeId));
   if (existing.length) return;
   await insertIdols(idols, castMembers, episodeId);
 }
 
-async function processAdvantages(advantages: AdvantageEvent[], castMembers: SelectCastMember[], episodeId: number) {
-  const existing = await db.select().from(advantagesTable).where(eq(advantagesTable.foundInEpisodeId, episodeId));
+async function processAdvantages(
+  advantages: AdvantageEvent[],
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  const existing = await db
+    .select()
+    .from(advantagesTable)
+    .where(eq(advantagesTable.foundInEpisodeId, episodeId));
   if (existing.length) return;
   await insertAdvantages(advantages, castMembers, episodeId);
 }
 
+async function insertEpisodeTribeSnapshot(
+  confessionals: ConfessionalsByPlayer,
+  castMembers: SelectCastMember[],
+  episodeId: number,
+) {
+  const rows = castMembers
+    .filter((c) => c.tribe !== "Eliminated")
+    .map((c) => ({
+      castMemberId: c.id,
+      episodeId,
+      tribe: confessionals[c.name]?.[0]?.tribe ?? c.tribe,
+    }));
+
+  if (!rows.length) return;
+
+  await db
+    .insert(castMemberEpisodeTribeTable)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [castMemberEpisodeTribeTable.castMemberId, castMemberEpisodeTribeTable.episodeId],
+      set: { tribe: sql`excluded.tribe` },
+    });
+}
 
 export async function processEpisodeWiki(
   _prevState: { error: string; fields?: { episode: string } } | null,
   formData: FormData,
 ) {
-  const episode = toTitleCase(formData.get("episode") as string);
+  const episode = formData.get("episode") as string;
 
   let title: string;
   let contentString: string;
@@ -379,10 +466,24 @@ export async function processEpisodeWiki(
     return { error: error.message };
   }
 
-  const episodeByTitle = await getEpisodeByTitle(title);
+  let episodeByTitle;
+  try {
+    episodeByTitle = await getEpisodeByTitle(title);
+  } catch (e) {
+    console.log("Did not find episode in DB");
+  }
   if (episodeByTitle) redirect("/admin/episode/" + episodeByTitle.id);
 
-  const { confessionals, tribalCouncils, challenges, episodeInfo, idols, advantages, evacuated, quit } = await parseWikiWithClaude(contentString);
+  const {
+    confessionals,
+    tribalCouncils,
+    challenges,
+    episodeInfo,
+    idols,
+    advantages,
+    evacuated,
+    quit,
+  } = await parseWikiWithClaude(contentString);
 
   const episodeNumber = episodeInfo?.episodeNumber;
   if (!episodeNumber) return { error: "Could not parse episode number." };
@@ -393,7 +494,7 @@ export async function processEpisodeWiki(
     episodeRecord = await getEpisodeByNumber(episodeNumber);
   } catch (e: unknown) {
     const error = e as { message: string };
-    if (error.message == 'Found no value') {
+    if (error.message == "Found no value") {
       try {
         await insertEpisode(episodeInfo, title);
         episodeRecord = await getEpisodeByNumber(episodeNumber);
@@ -401,31 +502,63 @@ export async function processEpisodeWiki(
         return { error: "Error adding episode to database" };
       }
     }
-    return { error: "Error adding episode to database" };
+    return { error: "Error getting episode from database" };
   }
 
   const castMembers = await getCastMembers();
 
-  try { await processConfessionals(confessionals, episodeRecord.id); }
-  catch (_) { return { error: "Error adding confessionals to database" }; }
+  try {
+    await processConfessionals(confessionals, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error adding confessionals to database" };
+  }
 
-  try { await processTribalVotes(tribalCouncils, castMembers, episodeRecord.id); }
-  catch (_) { return { error: "Error adding tribal votes to db" }; }
+  try {
+    await insertEpisodeTribeSnapshot(confessionals, castMembers, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error inserting tribe snapshot" };
+  }
 
-  try { await processChallenges(challenges, castMembers, episodeRecord.id); }
-  catch (_) { return { error: "Error adding challenges to db" }; }
+  try {
+    await processTribalVotes(tribalCouncils, castMembers, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error adding tribal votes to db" };
+  }
 
-  try { await processIdols(idols, castMembers, episodeRecord.id); }
-  catch (_) { return { error: "Error adding idols to db" }; }
+  try {
+    await processChallenges(challenges, castMembers, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error adding challenges to db" };
+  }
 
-  try { await processAdvantages(advantages, castMembers, episodeRecord.id); }
-  catch (_) { return { error: "Error adding advantages to db" }; }
+  try {
+    await processIdols(idols, castMembers, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error adding idols to db" };
+  }
 
-  try { await updateEvacuatedAndQuit(evacuated, quit, castMembers, episodeRecord.id); }
-  catch (_) { return { error: "Error updating evacuated/quit players" }; }
+  try {
+    await processAdvantages(advantages, castMembers, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error adding advantages to db" };
+  }
 
-  try { await processEliminations(tribalCouncils, castMembers, episodeRecord.id); }
-  catch (_) { return { error: "Error processing eliminations" }; }
+  try {
+    await updateEvacuatedAndQuit(
+      evacuated,
+      quit,
+      castMembers,
+      episodeRecord.id,
+    );
+  } catch (_) {
+    return { error: "Error updating evacuated/quit players" };
+  }
+
+  try {
+    await processEliminations(tribalCouncils, castMembers, episodeRecord.id);
+  } catch (_) {
+    return { error: "Error processing eliminations" };
+  }
 
   redirect("/admin/episode/" + episodeRecord.id);
 }

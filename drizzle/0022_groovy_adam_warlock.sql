@@ -1,0 +1,1 @@
+ALTER TABLE "challenges_table" ADD COLUMN "tribe" text;

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, boolean, unique } from "drizzle-orm/pg-core";
 
 export const invitesTable = pgTable("invites_table", {
   id: serial("id").primaryKey(),
@@ -38,6 +38,7 @@ export const castMembersTable = pgTable("cast_members_table", {
   name: text("name").notNull().unique(),
   seasonNumber: integer("season_number"),
   tribe: text("tribe").notNull(),
+  imageUrl: text("image_url").notNull(),
   eliminatedEpisodeId: integer("eliminated_episode_id").references(() => episodesTable.id),
   evacuated: boolean("evacuated").notNull().default(false),
   quit: boolean("quit").notNull().default(false),
@@ -115,6 +116,7 @@ export const challengesTable = pgTable("challenges_table", {
   isReward: boolean("is_reward").notNull(),
   isImmunity: boolean("is_immunity").notNull(),
   individualChallenge: boolean("individual_challenge").notNull(),
+  tribe: text("tribe").array(),
 });
 
 export type SelectChallenge = typeof challengesTable.$inferSelect;
@@ -186,3 +188,84 @@ export const miscTable = pgTable("misc_table", {
 
 export type SelectMisc = typeof miscTable.$inferSelect;
 export type InsertMisc = typeof miscTable.$inferInsert;
+
+// Fantasy pool participants
+export const participantsTable = pgTable("participants_table", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type SelectParticipant = typeof participantsTable.$inferSelect;
+export type InsertParticipant = typeof participantsTable.$inferInsert;
+
+// Configurable scoring rules
+export const scoringRulesTable = pgTable("scoring_rules_table", {
+  id: serial("id").primaryKey(),
+  eventType: text("event_type").notNull().unique(),
+  pointsPerUnit: integer("points_per_unit").notNull(),
+  description: text("description"),
+});
+
+export type SelectScoringRule = typeof scoringRulesTable.$inferSelect;
+export type InsertScoringRule = typeof scoringRulesTable.$inferInsert;
+
+// Cached points per cast member per episode per event type
+export const castMemberEpisodePointsTable = pgTable(
+  "cast_member_episode_points_table",
+  {
+    id: serial("id").primaryKey(),
+    castMemberId: integer("cast_member_id")
+      .notNull()
+      .references(() => castMembersTable.id, { onDelete: "cascade" }),
+    episodeId: integer("episode_id")
+      .notNull()
+      .references(() => episodesTable.id, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull(),
+    points: integer("points").notNull(),
+    computedAt: timestamp("computed_at").defaultNow(),
+  },
+  (t) => [unique().on(t.castMemberId, t.episodeId, t.eventType)],
+);
+
+export type SelectCastMemberEpisodePoints = typeof castMemberEpisodePointsTable.$inferSelect;
+export type InsertCastMemberEpisodePoints = typeof castMemberEpisodePointsTable.$inferInsert;
+
+// Admin-managed roster snapshot per participant per episode
+export const participantEpisodeRosterTable = pgTable(
+  "participant_episode_roster_table",
+  {
+    id: serial("id").primaryKey(),
+    participantId: integer("participant_id")
+      .notNull()
+      .references(() => participantsTable.id, { onDelete: "cascade" }),
+    episodeId: integer("episode_id")
+      .notNull()
+      .references(() => episodesTable.id, { onDelete: "cascade" }),
+    castMemberId: integer("cast_member_id")
+      .notNull()
+      .references(() => castMembersTable.id, { onDelete: "cascade" }),
+  },
+  (t) => [unique().on(t.participantId, t.episodeId, t.castMemberId)],
+);
+
+export type SelectParticipantEpisodeRoster = typeof participantEpisodeRosterTable.$inferSelect;
+export type InsertParticipantEpisodeRoster = typeof participantEpisodeRosterTable.$inferInsert;
+
+export const castMemberEpisodeTribeTable = pgTable(
+  "cast_member_episode_tribe_table",
+  {
+    id: serial("id").primaryKey(),
+    castMemberId: integer("cast_member_id")
+      .notNull()
+      .references(() => castMembersTable.id, { onDelete: "cascade" }),
+    episodeId: integer("episode_id")
+      .notNull()
+      .references(() => episodesTable.id, { onDelete: "cascade" }),
+    tribe: text("tribe").notNull(),
+  },
+  (t) => [unique().on(t.castMemberId, t.episodeId)],
+);
+
+export type SelectCastMemberEpisodeTribe = typeof castMemberEpisodeTribeTable.$inferSelect;
+export type InsertCastMemberEpisodeTribe = typeof castMemberEpisodeTribeTable.$inferInsert;

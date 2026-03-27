@@ -1,0 +1,1 @@
+ALTER TABLE "cast_members_table" ALTER COLUMN "image_url" SET NOT NULL;

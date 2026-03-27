@@ -1,0 +1,1317 @@
+{
+  "id": "7af8d14a-5869-4926-996d-819dd157097e",
+  "prevId": "a2440310-33bc-4b15-916f-ef3d7eb365d3",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.advantages_table": {
+      "name": "advantages_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "found_by_cast_member_id": {
+          "name": "found_by_cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "found_in_episode_id": {
+          "name": "found_in_episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_holder_id": {
+          "name": "current_holder_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_by_cast_member_id": {
+          "name": "used_by_cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_in_episode_id": {
+          "name": "used_in_episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "advantages_table_found_by_cast_member_id_cast_members_table_id_fk": {
+          "name": "advantages_table_found_by_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "advantages_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "found_by_cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "advantages_table_found_in_episode_id_episodes_table_id_fk": {
+          "name": "advantages_table_found_in_episode_id_episodes_table_id_fk",
+          "tableFrom": "advantages_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "found_in_episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "advantages_table_current_holder_id_cast_members_table_id_fk": {
+          "name": "advantages_table_current_holder_id_cast_members_table_id_fk",
+          "tableFrom": "advantages_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "current_holder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "advantages_table_used_by_cast_member_id_cast_members_table_id_fk": {
+          "name": "advantages_table_used_by_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "advantages_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "used_by_cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "advantages_table_used_in_episode_id_episodes_table_id_fk": {
+          "name": "advantages_table_used_in_episode_id_episodes_table_id_fk",
+          "tableFrom": "advantages_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "used_in_episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cast_member_episode_points_table": {
+      "name": "cast_member_episode_points_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "computed_at": {
+          "name": "computed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cast_member_episode_points_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "cast_member_episode_points_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "cast_member_episode_points_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "cast_member_episode_points_table_episode_id_episodes_table_id_fk": {
+          "name": "cast_member_episode_points_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "cast_member_episode_points_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cast_member_episode_points_table_cast_member_id_episode_id_event_type_unique": {
+          "name": "cast_member_episode_points_table_cast_member_id_episode_id_event_type_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cast_member_id",
+            "episode_id",
+            "event_type"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cast_member_episode_tribe_table": {
+      "name": "cast_member_episode_tribe_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tribe": {
+          "name": "tribe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cast_member_episode_tribe_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "cast_member_episode_tribe_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "cast_member_episode_tribe_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "cast_member_episode_tribe_table_episode_id_episodes_table_id_fk": {
+          "name": "cast_member_episode_tribe_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "cast_member_episode_tribe_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cast_member_episode_tribe_table_cast_member_id_episode_id_unique": {
+          "name": "cast_member_episode_tribe_table_cast_member_id_episode_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cast_member_id",
+            "episode_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cast_members_table": {
+      "name": "cast_members_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "season_number": {
+          "name": "season_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tribe": {
+          "name": "tribe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eliminated_episode_id": {
+          "name": "eliminated_episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evacuated": {
+          "name": "evacuated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "quit": {
+          "name": "quit",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "final_placement": {
+          "name": "final_placement",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cast_members_table_eliminated_episode_id_episodes_table_id_fk": {
+          "name": "cast_members_table_eliminated_episode_id_episodes_table_id_fk",
+          "tableFrom": "cast_members_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "eliminated_episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cast_members_table_name_unique": {
+          "name": "cast_members_table_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.challenge_winners_table": {
+      "name": "challenge_winners_table",
+      "schema": "",
+      "columns": {
+        "challenge_id": {
+          "name": "challenge_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "placement": {
+          "name": "placement",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "challenge_winners_table_challenge_id_challenges_table_id_fk": {
+          "name": "challenge_winners_table_challenge_id_challenges_table_id_fk",
+          "tableFrom": "challenge_winners_table",
+          "tableTo": "challenges_table",
+          "columnsFrom": [
+            "challenge_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "challenge_winners_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "challenge_winners_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "challenge_winners_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.challenges_table": {
+      "name": "challenges_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_reward": {
+          "name": "is_reward",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_immunity": {
+          "name": "is_immunity",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "individual_challenge": {
+          "name": "individual_challenge",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tribe": {
+          "name": "tribe",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "challenges_table_episode_id_episodes_table_id_fk": {
+          "name": "challenges_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "challenges_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.confessionals_count_table": {
+      "name": "confessionals_count_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "confessionals_count_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "confessionals_count_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "confessionals_count_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "confessionals_count_table_episode_id_episodes_table_id_fk": {
+          "name": "confessionals_count_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "confessionals_count_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.confessionals_table": {
+      "name": "confessionals_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tribe": {
+          "name": "tribe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quote": {
+          "name": "quote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "confessionals_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "confessionals_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "confessionals_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "confessionals_table_episode_id_episodes_table_id_fk": {
+          "name": "confessionals_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "confessionals_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.episodes_table": {
+      "name": "episodes_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "season_number": {
+          "name": "season_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "episode_number": {
+          "name": "episode_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "air_date": {
+          "name": "air_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eliminated_castaways": {
+          "name": "eliminated_castaways",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wiki_url": {
+          "name": "wiki_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "merge_occurred": {
+          "name": "merge_occurred",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "episodes_table_title_unique": {
+          "name": "episodes_table_title_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "title"
+          ]
+        },
+        "episodes_table_episode_number_unique": {
+          "name": "episodes_table_episode_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "episode_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.error_logs": {
+      "name": "error_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "context": {
+          "name": "context",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.idols_table": {
+      "name": "idols_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "found_by_cast_member_id": {
+          "name": "found_by_cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "found_in_episode_id": {
+          "name": "found_in_episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_holder_id": {
+          "name": "current_holder_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_by_cast_member_id": {
+          "name": "used_by_cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_in_episode_id": {
+          "name": "used_in_episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "idols_table_found_by_cast_member_id_cast_members_table_id_fk": {
+          "name": "idols_table_found_by_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "idols_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "found_by_cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "idols_table_found_in_episode_id_episodes_table_id_fk": {
+          "name": "idols_table_found_in_episode_id_episodes_table_id_fk",
+          "tableFrom": "idols_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "found_in_episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "idols_table_current_holder_id_cast_members_table_id_fk": {
+          "name": "idols_table_current_holder_id_cast_members_table_id_fk",
+          "tableFrom": "idols_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "current_holder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "idols_table_used_by_cast_member_id_cast_members_table_id_fk": {
+          "name": "idols_table_used_by_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "idols_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "used_by_cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "idols_table_used_in_episode_id_episodes_table_id_fk": {
+          "name": "idols_table_used_in_episode_id_episodes_table_id_fk",
+          "tableFrom": "idols_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "used_in_episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.invites_table": {
+      "name": "invites_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claimed_by_user_id": {
+          "name": "claimed_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invites_table_code_unique": {
+          "name": "invites_table_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.misc_table": {
+      "name": "misc_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "misc_table_episode_id_episodes_table_id_fk": {
+          "name": "misc_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "misc_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "misc_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "misc_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "misc_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.participant_episode_roster_table": {
+      "name": "participant_episode_roster_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "participant_id": {
+          "name": "participant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cast_member_id": {
+          "name": "cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "participant_episode_roster_table_participant_id_participants_table_id_fk": {
+          "name": "participant_episode_roster_table_participant_id_participants_table_id_fk",
+          "tableFrom": "participant_episode_roster_table",
+          "tableTo": "participants_table",
+          "columnsFrom": [
+            "participant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "participant_episode_roster_table_episode_id_episodes_table_id_fk": {
+          "name": "participant_episode_roster_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "participant_episode_roster_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "participant_episode_roster_table_cast_member_id_cast_members_table_id_fk": {
+          "name": "participant_episode_roster_table_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "participant_episode_roster_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "participant_episode_roster_table_participant_id_episode_id_cast_member_id_unique": {
+          "name": "participant_episode_roster_table_participant_id_episode_id_cast_member_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "participant_id",
+            "episode_id",
+            "cast_member_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.participants_table": {
+      "name": "participants_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scoring_rules_table": {
+      "name": "scoring_rules_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "points_per_unit": {
+          "name": "points_per_unit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scoring_rules_table_event_type_unique": {
+          "name": "scoring_rules_table_event_type_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_type"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tribal_councils_table": {
+      "name": "tribal_councils_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tribe": {
+          "name": "tribe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "eliminated_cast_member_id": {
+          "name": "eliminated_cast_member_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blindsided": {
+          "name": "blindsided",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tribal_councils_table_episode_id_episodes_table_id_fk": {
+          "name": "tribal_councils_table_episode_id_episodes_table_id_fk",
+          "tableFrom": "tribal_councils_table",
+          "tableTo": "episodes_table",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tribal_councils_table_eliminated_cast_member_id_cast_members_table_id_fk": {
+          "name": "tribal_councils_table_eliminated_cast_member_id_cast_members_table_id_fk",
+          "tableFrom": "tribal_councils_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "eliminated_cast_member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tribal_votes_table": {
+      "name": "tribal_votes_table",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tribal_council_id": {
+          "name": "tribal_council_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "voter_id": {
+          "name": "voter_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "voted_for_id": {
+          "name": "voted_for_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tribal_votes_table_tribal_council_id_tribal_councils_table_id_fk": {
+          "name": "tribal_votes_table_tribal_council_id_tribal_councils_table_id_fk",
+          "tableFrom": "tribal_votes_table",
+          "tableTo": "tribal_councils_table",
+          "columnsFrom": [
+            "tribal_council_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tribal_votes_table_voter_id_cast_members_table_id_fk": {
+          "name": "tribal_votes_table_voter_id_cast_members_table_id_fk",
+          "tableFrom": "tribal_votes_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "voter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tribal_votes_table_voted_for_id_cast_members_table_id_fk": {
+          "name": "tribal_votes_table_voted_for_id_cast_members_table_id_fk",
+          "tableFrom": "tribal_votes_table",
+          "tableTo": "cast_members_table",
+          "columnsFrom": [
+            "voted_for_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

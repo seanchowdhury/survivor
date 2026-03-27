@@ -14,8 +14,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Tick02Icon } from "@hugeicons/core-free-icons";
-import { updateTribalVotes, updateTribalCouncilBlindsided, VoteWithCouncil } from "./actions";
+import { Tick03Icon } from "@hugeicons/core-free-icons";
+import {
+  updateTribalVotes,
+  updateTribalCouncilBlindsided,
+  VoteWithCouncil,
+} from "./actions";
 
 export default function EpisodeTribal({
   voteData,
@@ -39,42 +43,59 @@ export default function EpisodeTribal({
     return groups;
   };
 
-  const [committedValues, setCommittedValues] = useState<Record<number, number | null>>(
-    () => Object.fromEntries(voteData.map((v) => [v.voteId, v.votedForId])),
-  );
-  const [pendingChanges, setPendingChanges] = useState<Record<number, number | null>>({});
+  const [committedValues, setCommittedValues] = useState<
+    Record<number, number | null>
+  >(() => Object.fromEntries(voteData.map((v) => [v.voteId, v.votedForId])));
+  const [pendingChanges, setPendingChanges] = useState<
+    Record<number, number | null>
+  >({});
 
   return (
     <div className="p-2 space-y-6">
       {Object.entries(councilGroups()).map(([councilId, votes]) => {
-        const { tribe, sequence, eliminatedCastMemberId, blindsided } = votes[0];
+        const { tribe, sequence, eliminatedCastMemberId, blindsided } =
+          votes[0];
         const label = sequence > 1 ? `${tribe} (revote)` : tribe;
-        const eliminatedName = eliminatedCastMemberId ? castMembersById[eliminatedCastMemberId] : null;
+        const eliminatedName = eliminatedCastMemberId
+          ? castMembersById[eliminatedCastMemberId]
+          : null;
         return (
           <div key={councilId}>
             <h3 className="font-semibold text-lg mb-1">{label}</h3>
             {eliminatedName && (
               <div className="flex items-center gap-3 mb-2">
-                <p className="text-sm text-muted-foreground">Eliminated: {eliminatedName}</p>
+                <p className="text-sm text-muted-foreground">
+                  Eliminated: {eliminatedName}
+                </p>
                 <Toggle
                   variant="outline"
                   size="sm"
                   defaultPressed={blindsided}
-                  onPressedChange={(pressed) => updateTribalCouncilBlindsided(parseInt(councilId), pressed)}
+                  onPressedChange={(pressed) =>
+                    updateTribalCouncilBlindsided(parseInt(councilId), pressed)
+                  }
                 >
-                  <HugeiconsIcon icon={Tick02Icon} className="group-data-[state=on]/toggle:fill-foreground" />
+                  <HugeiconsIcon
+                    icon={Tick03Icon}
+                    className="group-data-[state=on]/toggle:fill-foreground"
+                  />
                   Blindsided
                 </Toggle>
               </div>
             )}
             <div className="space-y-2">
               {votes.map((vote) => {
-                const currentVotedForId = vote.voteId in pendingChanges ? pendingChanges[vote.voteId] : committedValues[vote.voteId];
+                const currentVotedForId =
+                  vote.voteId in pendingChanges
+                    ? pendingChanges[vote.voteId]
+                    : committedValues[vote.voteId];
                 return (
                   <div key={vote.voteId} className="flex items-center gap-2">
                     <span>{castMembersById[vote.voterId]} voted for</span>
                     <Select
-                      value={currentVotedForId != null ? `${currentVotedForId}` : ""}
+                      value={
+                        currentVotedForId != null ? `${currentVotedForId}` : ""
+                      }
                       onValueChange={(val) =>
                         setPendingChanges((prev) => ({
                           ...prev,
@@ -103,7 +124,10 @@ export default function EpisodeTribal({
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        setPendingChanges((prev) => ({ ...prev, [vote.voteId]: null }))
+                        setPendingChanges((prev) => ({
+                          ...prev,
+                          [vote.voteId]: null,
+                        }))
                       }
                     >
                       ×
