@@ -50,7 +50,7 @@ export default async function EpisodeShowPage({
             Episode {episode.episodeNumber}
           </p>
           <h1 className="text-2xl font-bold">{episode.title}</h1>
-          <div className="flex gap-4 mt-3">
+          <div className="flex justify-between mt-3">
             {episode.prevId ? (
               <Link
                 href={`/episode/${episode.prevId}`}
@@ -59,17 +59,15 @@ export default async function EpisodeShowPage({
                 ← Episode {episode.prevNumber}
               </Link>
             ) : (
-              <span className="text-sm text-gray-600">← Episode</span>
+              <span />
             )}
-            {episode.nextId ? (
+            {episode.nextId && (
               <Link
                 href={`/episode/${episode.nextId}`}
                 className="text-sm text-gray-400 hover:text-white"
               >
                 Episode {episode.nextNumber} →
               </Link>
-            ) : (
-              <span className="text-sm text-gray-600">Episode →</span>
             )}
           </div>
         </div>
