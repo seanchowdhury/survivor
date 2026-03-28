@@ -52,6 +52,17 @@ export default function RootLayout({
           <div className="pt-14">
             {children}
           </div>
+          <footer className="text-center py-4 text-xs text-gray-500 bg-gray-800">
+            Episode data sourced from the{" "}
+            <a
+              href="https://survivor.fandom.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-400 transition-colors"
+            >
+              Survivor Wiki on Fandom
+            </a>
+          </footer>
         </NeonAuthUIProvider>
         <Analytics />
       </body>

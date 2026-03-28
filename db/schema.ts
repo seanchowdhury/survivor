@@ -280,13 +280,14 @@ export const pollVotesTable = pgTable(
     episodeId: integer("episode_id")
       .notNull()
       .references(() => episodesTable.id),
-    question: text("question").notNull(), // 'next_boot' | 'story_focus' | 'biggest_threat'
+    questionType: text("question_type").notNull().default("select_cast_member"),
+    question: text("question").notNull(),
     castMemberId: integer("cast_member_id")
-      .notNull()
       .references(() => castMembersTable.id),
+    answer: boolean("answer"),
     voterToken: text("voter_token").notNull(),
     ipHash: text("ip_hash").notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [unique().on(t.episodeId, t.question, t.voterToken)],
+  (t) => [unique().on(t.episodeId, t.question, t.castMemberId, t.voterToken)],
 );

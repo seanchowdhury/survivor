@@ -1,0 +1,1 @@
+ALTER TABLE "poll_votes_table" ALTER COLUMN "cast_member_id" DROP NOT NULL;
