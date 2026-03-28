@@ -38,6 +38,7 @@ import {
 import { takeUniqueOrThrow } from "@/db/helpers";
 import { redirect } from "next/navigation";
 import { getEpisodeContent } from "@/app/admin/lib/wiki";
+import { recalculateEpisodeScores, recalculateSeasonScores } from "@/app/admin/leaderboard/actions";
 
 async function getEpisodeByNumber(
   episodeNumber: number,
@@ -559,6 +560,9 @@ export async function processEpisodeWiki(
   } catch (_) {
     return { error: "Error processing eliminations" };
   }
+
+  await recalculateEpisodeScores(episodeRecord.id);
+  await recalculateSeasonScores();
 
   redirect("/admin/episode/" + episodeRecord.id);
 }

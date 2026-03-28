@@ -1,7 +1,8 @@
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
+  castMemberEpisodePointsTable,
   castMembersTable,
   challengesTable,
   challengeWinnersTable,
@@ -107,6 +108,63 @@ export type TribalVoteRow = {
   blindsided: boolean;
   votes: { voterName: string; votedForName: string | null }[];
 };
+
+export type EpisodeFantasyRow = {
+  castMemberId: number;
+  name: string;
+  imageUrl: string;
+  totalPoints: number;
+  eliminatedEpisodeNumber: number | null;
+  breakdown: { eventType: string; points: number }[];
+};
+
+export async function getEpisodeFantasyPoints(episodeId: number): Promise<EpisodeFantasyRow[]> {
+  const elimEp = alias(episodesTable, "elim_ep");
+
+  // Aggregate totals per cast member
+  const totals = await db
+    .select({
+      castMemberId: castMembersTable.id,
+      name: castMembersTable.name,
+      imageUrl: castMembersTable.imageUrl,
+      eliminatedEpisodeNumber: elimEp.episodeNumber,
+      totalPoints: sql<number>`coalesce(sum(${castMemberEpisodePointsTable.points}), 0)`.as("total_points"),
+    })
+    .from(castMembersTable)
+    .leftJoin(elimEp, eq(elimEp.id, castMembersTable.eliminatedEpisodeId))
+    .leftJoin(
+      castMemberEpisodePointsTable,
+      sql`${castMemberEpisodePointsTable.castMemberId} = ${castMembersTable.id} AND ${castMemberEpisodePointsTable.episodeId} = ${episodeId}`,
+    )
+    .groupBy(castMembersTable.id, castMembersTable.name, castMembersTable.imageUrl, elimEp.episodeNumber)
+    .orderBy(sql`total_points desc`);
+
+  // All individual event rows for this episode
+  const eventRows = await db
+    .select({
+      castMemberId: castMemberEpisodePointsTable.castMemberId,
+      eventType: castMemberEpisodePointsTable.eventType,
+      points: castMemberEpisodePointsTable.points,
+    })
+    .from(castMemberEpisodePointsTable)
+    .where(eq(castMemberEpisodePointsTable.episodeId, episodeId));
+
+  const breakdownMap: Record<number, { eventType: string; points: number }[]> = {};
+  for (const row of eventRows) {
+    if (!breakdownMap[row.castMemberId]) breakdownMap[row.castMemberId] = [];
+    breakdownMap[row.castMemberId].push({ eventType: row.eventType, points: row.points });
+  }
+  // Sort each breakdown: positive first (desc), then negative (asc)
+  for (const rows of Object.values(breakdownMap)) {
+    rows.sort((a, b) => b.points - a.points);
+  }
+
+  return totals.map((r) => ({
+    ...r,
+    totalPoints: Number(r.totalPoints),
+    breakdown: breakdownMap[r.castMemberId] ?? [],
+  }));
+}
 
 export async function getTribalVotes(episodeId: number): Promise<TribalVoteRow[]> {
   const voter = alias(castMembersTable, "voter");

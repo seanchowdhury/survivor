@@ -201,6 +201,15 @@ export async function updateChallenges(
   }
 
   await Promise.all(ops);
+
+  const challengeIds = Object.keys(pendingChanges).map(Number);
+  if (challengeIds.length > 0) {
+    const [ch] = await db
+      .select({ episodeId: challengesTable.episodeId })
+      .from(challengesTable)
+      .where(eq(challengesTable.id, challengeIds[0]));
+    if (ch) await recalculateEpisodeScores(ch.episodeId);
+  }
 }
 
 export type VoteWithCouncil = {
@@ -249,10 +258,34 @@ export async function updateTribalVotes(
         .where(eq(tribalVotesTable.id, parseInt(voteId))),
     ),
   );
+
+  const voteIds = Object.keys(pendingChanges).map(Number);
+  if (voteIds.length > 0) {
+    const [row] = await db
+      .select({ episodeId: tribalCouncilsTable.episodeId })
+      .from(tribalVotesTable)
+      .innerJoin(
+        tribalCouncilsTable,
+        eq(tribalCouncilsTable.id, tribalVotesTable.tribalCouncilId),
+      )
+      .where(eq(tribalVotesTable.id, voteIds[0]));
+    if (row) await recalculateEpisodeScores(row.episodeId);
+  }
 }
 
 export async function deleteTribalVote(voteId: number) {
+  const [row] = await db
+    .select({ episodeId: tribalCouncilsTable.episodeId })
+    .from(tribalVotesTable)
+    .innerJoin(
+      tribalCouncilsTable,
+      eq(tribalCouncilsTable.id, tribalVotesTable.tribalCouncilId),
+    )
+    .where(eq(tribalVotesTable.id, voteId));
+
   await db.delete(tribalVotesTable).where(eq(tribalVotesTable.id, voteId));
+
+  if (row) await recalculateEpisodeScores(row.episodeId);
 }
 
 export async function updateTribalCouncilBlindsided(
@@ -263,6 +296,12 @@ export async function updateTribalCouncilBlindsided(
     .update(tribalCouncilsTable)
     .set({ blindsided })
     .where(eq(tribalCouncilsTable.id, councilId));
+
+  const [row] = await db
+    .select({ episodeId: tribalCouncilsTable.episodeId })
+    .from(tribalCouncilsTable)
+    .where(eq(tribalCouncilsTable.id, councilId));
+  if (row) await recalculateEpisodeScores(row.episodeId);
 }
 
 export type IdolOrAdvantage = {
@@ -342,10 +381,22 @@ export async function updateIdolUsed(
   usedByCastMemberId: number | null,
   usedInEpisodeId: number | null,
 ) {
+  const [existing] = await db
+    .select()
+    .from(idolsTable)
+    .where(eq(idolsTable.id, idolId));
+
   await db
     .update(idolsTable)
     .set({ usedByCastMemberId, usedInEpisodeId })
     .where(eq(idolsTable.id, idolId));
+
+  if (existing) {
+    const episodesToRecalc = new Set<number>([existing.foundInEpisodeId]);
+    if (existing.usedInEpisodeId) episodesToRecalc.add(existing.usedInEpisodeId);
+    if (usedInEpisodeId) episodesToRecalc.add(usedInEpisodeId);
+    await Promise.all([...episodesToRecalc].map(recalculateEpisodeScores));
+  }
 }
 
 export async function updateAdvantageUsed(
@@ -371,6 +422,7 @@ export async function createIdol(
     label: label || null,
     currentHolderId: currentHolderId ?? foundByCastMemberId,
   });
+  await recalculateEpisodeScores(foundInEpisodeId);
 }
 
 export type MiscEntry = {
@@ -403,10 +455,16 @@ export async function createMiscEntry(
   value: string,
 ) {
   await db.insert(miscTable).values({ episodeId, castMemberId, value });
+  await recalculateEpisodeScores(episodeId);
 }
 
 export async function deleteMiscEntry(id: number) {
+  const [row] = await db
+    .select({ episodeId: miscTable.episodeId })
+    .from(miscTable)
+    .where(eq(miscTable.id, id));
   await db.delete(miscTable).where(eq(miscTable.id, id));
+  if (row) await recalculateEpisodeScores(row.episodeId);
 }
 
 export async function createAdvantage(

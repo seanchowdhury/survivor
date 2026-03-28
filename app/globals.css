@@ -128,3 +128,13 @@
     @apply font-sans;
   }
 }
+
+/* Fix: neon-auth's @layer has higher cascade precedence than @layer utilities,
+   causing its * { border-color } to override Tailwind classes. These unlayered
+   rules always win over any @layer. */
+[data-slot="accordion-trigger"] {
+  border-color: transparent;
+}
+[data-slot="accordion-item"] {
+  border-color: var(--border);
+}

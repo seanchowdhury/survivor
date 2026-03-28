@@ -6,7 +6,9 @@ import {
   getConfessionalCounts,
   getChallenges,
   getTribalVotes,
+  getEpisodeFantasyPoints,
 } from "./actions";
+import EpisodeFantasy from "./episode-fantasy";
 
 function TribeBadge({ tribe }: { tribe: string }) {
   const styles: Record<string, string> = {
@@ -24,19 +26,24 @@ function TribeBadge({ tribe }: { tribe: string }) {
 
 export default async function EpisodeShowPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ episodeId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { episodeId: episodeIdStr } = await params;
+  const { tab } = await searchParams;
   const episodeId = parseInt(episodeIdStr);
+  const activeTab = tab === "fantasy" ? "fantasy" : "episode";
 
   const episode = await getEpisodePage(episodeId);
   if (!episode) notFound();
 
-  const [confessionals, challenges, tribalVotes] = await Promise.all([
+  const [confessionals, challenges, tribalVotes, fantasyPoints] = await Promise.all([
     getConfessionalCounts(episodeId, episode.episodeNumber ?? 0),
     getChallenges(episodeId),
     getTribalVotes(episodeId),
+    getEpisodeFantasyPoints(episodeId),
   ]);
 
   const maxCount = confessionals[0]?.count ?? 1;
@@ -72,6 +79,44 @@ export default async function EpisodeShowPage({
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex justify-center">
+          <div className="flex bg-gray-800 rounded-full p-1 gap-1">
+            <Link
+              href={`/episode/${episodeId}`}
+              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeTab === "episode"
+                  ? "bg-white text-gray-900"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Episode
+            </Link>
+            <Link
+              href={`/episode/${episodeId}?tab=fantasy`}
+              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeTab === "fantasy"
+                  ? "bg-white text-gray-900"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Fantasy
+            </Link>
+          </div>
+        </div>
+
+        {activeTab === "fantasy" ? (
+          <section className="bg-gray-800 rounded-lg p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">
+              Fantasy Points
+            </h2>
+            <EpisodeFantasy
+              players={fantasyPoints}
+              currentEpisodeNumber={episode.episodeNumber ?? 0}
+            />
+          </section>
+        ) : (
+          <>
         {/* Confessionals */}
         <section className="bg-gray-800 rounded-lg p-5">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">
@@ -213,6 +258,8 @@ export default async function EpisodeShowPage({
             </div>
           )}
         </section>
+          </>
+        )}
       </div>
     </div>
   );
