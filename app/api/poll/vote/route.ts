@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
-import { revalidateTag } from "next/cache";
 import { db } from "@/db";
 import { and, eq } from "drizzle-orm";
 import { pollVotesTable } from "@/db/schema";
@@ -109,7 +108,5 @@ export async function POST(req: NextRequest) {
     voterToken,
     ipHash,
   });
-  revalidateTag("poll", "default");
-
   return ok;
 }

@@ -64,7 +64,7 @@ export default async function PollPage() {
             {closed
               ? "Voting is closed — here's how everyone voted"
               : data.episodeNumber != null
-              ? `Predictions heading into Episode ${data.episodeNumber + 1}`
+              ? `Episode ${data.episodeNumber + 1}`
               : "What do you think?"}
           </p>
         </div>

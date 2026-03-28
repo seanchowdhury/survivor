@@ -1,24 +1,41 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { HeatmapData } from "./actions";
 
 export function ConfessionalHeatmap({ data }: { data: HeatmapData }) {
   const { episodes, castaways, maxCount } = data;
+  const [segregate, setSegregrate] = useState(true);
 
   if (castaways.length === 0) return null;
 
+  const sorted = segregate
+    ? castaways
+    : [...castaways].sort((a, b) => {
+        const totalA = a.counts.reduce<number>((s, c) => s + (c ?? 0), 0);
+        const totalB = b.counts.reduce<number>((s, c) => s + (c ?? 0), 0);
+        return totalB - totalA;
+      });
+
   return (
     <section className="flex flex-col gap-4">
-      <div>
+      <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
           Confessional Heat Map
         </h2>
+        <button
+          onClick={() => setSegregrate((s) => !s)}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          {segregate ? "Mix eliminated" : "Separate eliminated"}
+        </button>
       </div>
 
       <div className="bg-gray-800 rounded-lg p-4 overflow-x-auto">
         <table className="border-separate border-spacing-0">
           <thead>
             <tr>
-              {/* Name column header */}
               <th className="w-36 shrink-0" />
               {episodes.map((ep, i) => {
                 const prevEp = episodes[i - 1];
@@ -38,11 +55,10 @@ export function ConfessionalHeatmap({ data }: { data: HeatmapData }) {
             </tr>
           </thead>
           <tbody>
-            {castaways.map((castaway) => {
+            {sorted.map((castaway) => {
               const isEliminated = castaway.eliminatedEpisodeId !== null;
               return (
                 <tr key={castaway.castMemberId}>
-                  {/* Name cell */}
                   <td className="pr-3 py-0.5">
                     <div className={`flex items-center gap-2 ${isEliminated ? "opacity-50" : ""}`}>
                       <div className="relative w-6 h-6 rounded-full overflow-hidden shrink-0 bg-gray-700">
@@ -60,7 +76,6 @@ export function ConfessionalHeatmap({ data }: { data: HeatmapData }) {
                     </div>
                   </td>
 
-                  {/* Count cells */}
                   {castaway.counts.map((count, epIdx) => {
                     const ep = episodes[epIdx];
                     const prevEp = episodes[epIdx - 1];

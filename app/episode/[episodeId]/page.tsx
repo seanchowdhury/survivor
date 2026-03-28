@@ -77,7 +77,7 @@ export default async function EpisodeShowPage({
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              Episode
+              Reality
             </Link>
             <Link
               href={`/episode/${episodeId}?tab=fantasy`}

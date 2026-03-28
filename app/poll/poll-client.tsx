@@ -70,11 +70,21 @@ export function PollClient({ data, hasVoted, isClosed, nonce, jt }: Props) {
   if (submitted) {
     return (
       <div className="flex flex-col gap-8">
-        <p className="text-sm text-gray-400">
-          {data.totalVoters > 0
-            ? `${data.totalVoters.toLocaleString()} vote${data.totalVoters === 1 ? "" : "s"} cast so far`
-            : "Be the first to vote!"}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-400">
+            {data.totalVoters > 0
+              ? `${data.totalVoters.toLocaleString()} vote${data.totalVoters === 1 ? "" : "s"} cast so far`
+              : "No votes yet"}
+          </p>
+          {!hasVoted && !isClosed && (
+            <button
+              onClick={() => setSubmitted(false)}
+              className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              ← Back to voting
+            </button>
+          )}
+        </div>
         {QUESTIONS.map(({ key, label }) => (
           <ResultsSection
             key={key}
@@ -140,18 +150,26 @@ export function PollClient({ data, hasVoted, isClosed, nonce, jt }: Props) {
         </section>
       ))}
 
-      <button
-        onClick={handleSubmit}
-        disabled={!allSelected || submitting}
-        className={cn(
-          "w-full py-3 rounded-xl font-bold text-sm transition-colors",
-          allSelected && !submitting
-            ? "bg-orange-500 hover:bg-orange-400 text-white"
-            : "bg-gray-800 text-gray-500 cursor-not-allowed"
-        )}
-      >
-        {submitting ? "Submitting…" : allSelected ? "Submit Predictions" : "Select all three to submit"}
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          onClick={handleSubmit}
+          disabled={!allSelected || submitting}
+          className={cn(
+            "w-full py-3 rounded-xl font-bold text-sm transition-colors",
+            allSelected && !submitting
+              ? "bg-orange-500 hover:bg-orange-400 text-white"
+              : "bg-gray-800 text-gray-500 cursor-not-allowed"
+          )}
+        >
+          {submitting ? "Submitting…" : allSelected ? "Submit Predictions" : "Select all three to submit"}
+        </button>
+        <button
+          onClick={() => setSubmitted(true)}
+          className="w-full py-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          View current results
+        </button>
+      </div>
     </div>
   );
 }
