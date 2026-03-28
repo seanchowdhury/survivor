@@ -58,9 +58,6 @@ export function SeasonCastList({
 }) {
   return (
     <section className="bg-gray-800 rounded-lg overflow-hidden">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 px-5 pt-5 pb-3">
-        Full Standings
-      </h2>
       <div className="flex flex-col divide-y divide-gray-700">
         {cast.map((member, i) => (
           <CastListRow key={member.castMemberId} member={member} rank={startRank + i} />
