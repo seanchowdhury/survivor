@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/db";
-import { sql, eq, isNotNull } from "drizzle-orm";
+import { sql, eq, isNotNull, isNull, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { castMembersTable, castMemberEpisodePointsTable, confessionalCountTable, episodesTable, tribalCouncilsTable, tribalVotesTable, challengesTable, challengeWinnersTable, idolsTable, advantagesTable } from "@/db/schema";
 
@@ -236,7 +236,6 @@ export type VotesAgainstEntry = {
   castMemberId: number;
   name: string;
   imageUrl: string;
-  isEliminated: boolean;
   preMerge: number;
   postMerge: number;
   total: number;
@@ -251,7 +250,6 @@ export const getVotesAgainst = unstable_cache(
         castMemberId: votedFor.id,
         name: votedFor.name,
         imageUrl: votedFor.imageUrl,
-        isEliminated: sql<boolean>`${votedFor.eliminatedEpisodeId} is not null`,
         episodeNumber: episodesTable.episodeNumber,
         mergeOccurred: episodesTable.mergeOccurred,
       })
@@ -259,7 +257,7 @@ export const getVotesAgainst = unstable_cache(
       .innerJoin(tribalCouncilsTable, eq(tribalCouncilsTable.id, tribalVotesTable.tribalCouncilId))
       .innerJoin(episodesTable, eq(episodesTable.id, tribalCouncilsTable.episodeId))
       .innerJoin(votedFor, eq(votedFor.id, tribalVotesTable.votedForId))
-      .where(isNotNull(tribalVotesTable.votedForId));
+      .where(and(isNotNull(tribalVotesTable.votedForId), isNull(votedFor.eliminatedEpisodeId)));
 
     if (rows.length === 0) return { entries: [], hasMerge: false };
 
@@ -275,7 +273,6 @@ export const getVotesAgainst = unstable_cache(
           castMemberId: row.castMemberId,
           name: row.name,
           imageUrl: row.imageUrl,
-          isEliminated: row.isEliminated,
           preMerge: 0,
           postMerge: 0,
           total: 0,
@@ -292,7 +289,7 @@ export const getVotesAgainst = unstable_cache(
     }
 
     const entries = [...tally.values()]
-      .filter((e) => e.total > 0 && !e.isEliminated)
+      .filter((e) => e.total > 0)
       .sort((a, b) => b.total - a.total);
 
     return { entries, hasMerge };

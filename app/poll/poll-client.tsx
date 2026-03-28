@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { PollData, PollCastMember, PollResult } from "./actions";
+import { PollData, PollResult } from "./actions";
 
 type CastMemberQuestion = {
   key: string; // used as results key and selections key
@@ -172,7 +172,7 @@ export function PollClient({ data, hasVoted, isClosed, nonce, jt }: Props) {
               ? `${data.totalVoters.toLocaleString()} vote${data.totalVoters === 1 ? "" : "s"} cast so far`
               : "No votes yet"}
           </p>
-          {!hasVoted && !isClosed && (
+          {!isClosed && (
             <button
               onClick={() => setSubmitted(false)}
               className="text-sm text-gray-500 hover:text-gray-300 transition-colors"

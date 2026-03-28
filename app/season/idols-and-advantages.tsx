@@ -22,7 +22,10 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export function IdolsAndAdvantages({ entries }: { entries: IdolEntry[] }) {
-  if (entries.length === 0) return null;
+  const visible = entries.filter(
+    (entry) => entry.currentHolderName === null || !entry.currentHolderIsEliminated
+  );
+  if (visible.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-4">
@@ -31,9 +34,7 @@ export function IdolsAndAdvantages({ entries }: { entries: IdolEntry[] }) {
       </h2>
 
       <div className="flex flex-col gap-3">
-        {entries.filter((entry) =>
-          entry.currentHolderName === null || !entry.currentHolderIsEliminated
-        ).map((entry) => {
+        {visible.map((entry) => {
           const holderActive = entry.currentHolderName !== null && !entry.currentHolderIsEliminated;
           const isGone = !holderActive && entry.usedByName === null;
           const displayLabel =
