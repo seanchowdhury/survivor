@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { sql, eq } from "drizzle-orm";
-import { castMembersTable, castMemberEpisodePointsTable } from "@/db/schema";
+import { castMembersTable, castMemberEpisodePointsTable, confessionalCountTable, episodesTable } from "@/db/schema";
 
 export type StatCategory = {
   label: string;
@@ -135,4 +135,89 @@ export async function getSeasonTotals(): Promise<SeasonCastMemberRow[]> {
       stats,
     };
   });
+}
+
+export type HeatmapData = {
+  episodes: { id: number; episodeNumber: number | null; title: string; mergeOccurred: boolean }[];
+  castaways: {
+    castMemberId: number;
+    name: string;
+    imageUrl: string;
+    tribe: string;
+    eliminatedEpisodeId: number | null;
+    counts: (number | null)[];
+  }[];
+  maxCount: number;
+};
+
+export async function getConfessionalHeatmap(): Promise<HeatmapData> {
+  const [episodes, countRows] = await Promise.all([
+    db
+      .select({
+        id: episodesTable.id,
+        episodeNumber: episodesTable.episodeNumber,
+        title: episodesTable.title,
+        mergeOccurred: episodesTable.mergeOccurred,
+      })
+      .from(episodesTable)
+      .orderBy(episodesTable.episodeNumber),
+
+    db
+      .select({
+        castMemberId: castMembersTable.id,
+        name: castMembersTable.name,
+        imageUrl: castMembersTable.imageUrl,
+        tribe: castMembersTable.tribe,
+        eliminatedEpisodeId: castMembersTable.eliminatedEpisodeId,
+        episodeId: confessionalCountTable.episodeId,
+        count: confessionalCountTable.count,
+      })
+      .from(confessionalCountTable)
+      .innerJoin(castMembersTable, eq(castMembersTable.id, confessionalCountTable.castMemberId)),
+  ]);
+
+  // Build map: castMemberId -> episodeId -> count
+  const countMap = new Map<number, Map<number, number>>();
+  const castawayMeta = new Map<number, { name: string; imageUrl: string; tribe: string; eliminatedEpisodeId: number | null }>();
+
+  for (const row of countRows) {
+    if (!countMap.has(row.castMemberId)) countMap.set(row.castMemberId, new Map());
+    countMap.get(row.castMemberId)!.set(row.episodeId, row.count);
+    if (!castawayMeta.has(row.castMemberId)) {
+      castawayMeta.set(row.castMemberId, {
+        name: row.name,
+        imageUrl: row.imageUrl,
+        tribe: row.tribe,
+        eliminatedEpisodeId: row.eliminatedEpisodeId,
+      });
+    }
+  }
+
+  // Sort: active players first (by total confessionals desc), eliminated last (by total confessionals desc)
+  const sortedIds = [...countMap.keys()].sort((a, b) => {
+    const metaA = castawayMeta.get(a)!;
+    const metaB = castawayMeta.get(b)!;
+    const eliminatedA = metaA.eliminatedEpisodeId !== null ? 1 : 0;
+    const eliminatedB = metaB.eliminatedEpisodeId !== null ? 1 : 0;
+    if (eliminatedA !== eliminatedB) return eliminatedA - eliminatedB;
+    const totalA = [...(countMap.get(a)?.values() ?? [])].reduce((s, v) => s + v, 0);
+    const totalB = [...(countMap.get(b)?.values() ?? [])].reduce((s, v) => s + v, 0);
+    return totalB - totalA;
+  });
+
+  let maxCount = 1;
+  for (const epMap of countMap.values()) {
+    for (const c of epMap.values()) {
+      if (c > maxCount) maxCount = c;
+    }
+  }
+
+  const castaways = sortedIds.map((id) => {
+    const meta = castawayMeta.get(id)!;
+    const epMap = countMap.get(id)!;
+    const counts = episodes.map((ep) => epMap.get(ep.id) ?? null);
+    return { castMemberId: id, ...meta, counts };
+  });
+
+  return { episodes, castaways, maxCount };
 }

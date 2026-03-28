@@ -197,6 +197,13 @@
       "when": 1774669365082,
       "tag": "0027_complete_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1774672637542,
+      "tag": "0028_blue_silver_sable",
+      "breakpoints": true
     }
   ]
 }

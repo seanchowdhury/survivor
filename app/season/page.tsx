@@ -1,9 +1,10 @@
-import { getSeasonTotals } from "./actions";
+import { getSeasonTotals, getConfessionalHeatmap } from "./actions";
 import { SeasonPodium } from "./podium";
 import { SeasonCastList } from "./cast-list";
+import { ConfessionalHeatmap } from "./confessional-heatmap";
 
 export default async function SeasonPage() {
-  const cast = await getSeasonTotals();
+  const [cast, heatmapData] = await Promise.all([getSeasonTotals(), getConfessionalHeatmap()]);
   const top3 = cast.slice(0, 3);
   const rest = cast.slice(3);
 
@@ -17,6 +18,7 @@ export default async function SeasonPage() {
 
         {top3.length > 0 && <SeasonPodium top3={top3} />}
         {rest.length > 0 && <SeasonCastList cast={rest} startRank={4} />}
+        <ConfessionalHeatmap data={heatmapData} />
       </div>
     </div>
   );

@@ -24,9 +24,11 @@ import { cn } from "@/lib/utils";
 const PUBLIC_LINKS = [
   { href: "/", label: "Episodes", matchPrefix: "/episode" },
   { href: "/season", label: "Season", matchPrefix: "/season" },
+  { href: "/poll", label: "Poll", matchPrefix: "/poll" },
 ];
 
 const AUTHED_LINKS = [
+  { href: "/leaderboard", label: "Leaderboard", matchPrefix: "/leaderboard" },
   { href: "/roster", label: "Roster", matchPrefix: "/roster" },
 ];
 

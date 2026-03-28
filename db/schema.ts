@@ -271,3 +271,22 @@ export const castMemberEpisodeTribeTable = pgTable(
 
 export type SelectCastMemberEpisodeTribe = typeof castMemberEpisodeTribeTable.$inferSelect;
 export type InsertCastMemberEpisodeTribe = typeof castMemberEpisodeTribeTable.$inferInsert;
+
+// Public prediction poll votes
+export const pollVotesTable = pgTable(
+  "poll_votes_table",
+  {
+    id: serial("id").primaryKey(),
+    episodeId: integer("episode_id")
+      .notNull()
+      .references(() => episodesTable.id),
+    question: text("question").notNull(), // 'next_boot' | 'story_focus' | 'biggest_threat'
+    castMemberId: integer("cast_member_id")
+      .notNull()
+      .references(() => castMembersTable.id),
+    voterToken: text("voter_token").notNull(),
+    ipHash: text("ip_hash").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.episodeId, t.question, t.voterToken)],
+);
