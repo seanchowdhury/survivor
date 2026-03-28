@@ -1,10 +1,10 @@
 import { authClient } from "@/lib/auth/client";
-import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
+import { NeonAuthUIProvider } from "@neondatabase/auth/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { SiteHeader } from "@/components/site-header";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -47,24 +47,10 @@ export default function RootLayout({
           redirectTo="/account/settings"
           emailOTP
         >
-          {/* Mobile: full-width bar. Desktop: floating text links + floating user button */}
-          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-12 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800 sm:hidden">
-            <nav className="flex items-center gap-2 text-sm">
-              <Link href="/" className="text-gray-400 hover:text-white transition-colors">Episodes</Link>
-              <span className="text-gray-600">·</span>
-              <Link href="/season" className="text-gray-400 hover:text-white transition-colors">Season</Link>
-            </nav>
-            <UserButton size="icon" />
+          <SiteHeader />
+          <div className="pt-14">
+            {children}
           </div>
-          <nav className="hidden sm:flex fixed top-4 left-4 z-50 items-center gap-2 text-sm">
-            <Link href="/" className="text-gray-400 hover:text-white transition-colors">Episodes</Link>
-            <span className="text-gray-600">·</span>
-            <Link href="/season" className="text-gray-400 hover:text-white transition-colors">Season</Link>
-          </nav>
-          <div className="hidden sm:block fixed top-4 right-4 z-50">
-            <UserButton size="icon" />
-          </div>
-          {children}
         </NeonAuthUIProvider>
       </body>
     </html>
