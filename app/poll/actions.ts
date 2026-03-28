@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { db } from "@/db";
 import { eq, isNull, sql } from "drizzle-orm";
 import { castMembersTable, episodesTable, pollVotesTable } from "@/db/schema";
@@ -24,7 +25,8 @@ export type PollData = {
   totalVoters: number;
 };
 
-export async function getPollData(): Promise<PollData | null> {
+export const getPollData = unstable_cache(
+  async (): Promise<PollData | null> => {
   const [latestEpisode] = await db
     .select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber })
     .from(episodesTable)
@@ -87,4 +89,7 @@ export async function getPollData(): Promise<PollData | null> {
     results,
     totalVoters,
   };
-}
+  },
+  ["poll-data"],
+  { revalidate: 30, tags: ["poll"] }
+);

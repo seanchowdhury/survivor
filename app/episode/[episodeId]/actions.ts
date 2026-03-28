@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { db } from "@/db";
 import { eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -12,25 +13,46 @@ import {
   tribalVotesTable,
 } from "@/db/schema";
 
-export async function getEpisodePage(episodeId: number) {
-  const episodes = (await db.select().from(episodesTable)).sort(
-    (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0),
-  );
-  const idx = episodes.findIndex((e) => e.id === episodeId);
-  if (idx === -1) return null;
-  const episode = episodes[idx];
-  return {
-    id: episode.id,
-    title: episode.title,
-    episodeNumber: episode.episodeNumber,
-    prevId: idx > 0 ? episodes[idx - 1].id : null,
-    nextId: idx < episodes.length - 1 ? episodes[idx + 1].id : null,
-    prevNumber: idx > 0 ? episodes[idx - 1].episodeNumber : null,
-    nextNumber: idx < episodes.length - 1 ? episodes[idx + 1].episodeNumber : null,
-  };
+export function getEpisodePage(episodeId: number) {
+  return unstable_cache(
+    async () => {
+      const [episode] = await db
+        .select()
+        .from(episodesTable)
+        .where(eq(episodesTable.id, episodeId));
+      if (!episode) return null;
+
+      const [prev, next] = await Promise.all([
+        db
+          .select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber })
+          .from(episodesTable)
+          .where(eq(episodesTable.episodeNumber, (episode.episodeNumber ?? 0) - 1))
+          .limit(1),
+        db
+          .select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber })
+          .from(episodesTable)
+          .where(eq(episodesTable.episodeNumber, (episode.episodeNumber ?? 0) + 1))
+          .limit(1),
+      ]);
+
+      return {
+        id: episode.id,
+        title: episode.title,
+        episodeNumber: episode.episodeNumber,
+        prevId: prev[0]?.id ?? null,
+        nextId: next[0]?.id ?? null,
+        prevNumber: prev[0]?.episodeNumber ?? null,
+        nextNumber: next[0]?.episodeNumber ?? null,
+      };
+    },
+    ["episode-page", String(episodeId)],
+    { tags: ["episodes"] }
+  )();
 }
 
-export async function getConfessionalCounts(episodeId: number, episodeNumber: number) {
+export function getConfessionalCounts(episodeId: number, episodeNumber: number) {
+  return unstable_cache(
+    async () => {
   const eliminatedEp = alias(episodesTable, "eliminated_ep");
 
   const results = await db
@@ -52,6 +74,10 @@ export async function getConfessionalCounts(episodeId: number, episodeNumber: nu
     })
     .map((r) => ({ name: r.name, count: r.count, imageUrl: r.imageUrl }))
     .sort((a, b) => b.count - a.count);
+    },
+    ["confessionals", String(episodeId)],
+    { tags: ["episodes"] }
+  )();
 }
 
 export type ChallengeWinner = {
@@ -69,7 +95,9 @@ export type ChallengeData = {
   winners: ChallengeWinner[];
 };
 
-export async function getChallenges(episodeId: number): Promise<ChallengeData[]> {
+export function getChallenges(episodeId: number): Promise<ChallengeData[]> {
+  return unstable_cache(
+    async (): Promise<ChallengeData[]> => {
   const rows = await db
     .select()
     .from(challengeWinnersTable)
@@ -98,6 +126,10 @@ export async function getChallenges(episodeId: number): Promise<ChallengeData[]>
   }
 
   return Object.values(challengeMap).sort((a, b) => a.id - b.id);
+    },
+    ["challenges", String(episodeId)],
+    { tags: ["episodes"] }
+  )();
 }
 
 export type TribalVoteRow = {
@@ -118,7 +150,9 @@ export type EpisodeFantasyRow = {
   breakdown: { eventType: string; points: number }[];
 };
 
-export async function getEpisodeFantasyPoints(episodeId: number): Promise<EpisodeFantasyRow[]> {
+export function getEpisodeFantasyPoints(episodeId: number): Promise<EpisodeFantasyRow[]> {
+  return unstable_cache(
+    async (): Promise<EpisodeFantasyRow[]> => {
   const elimEp = alias(episodesTable, "elim_ep");
 
   // Aggregate totals per cast member
@@ -164,9 +198,15 @@ export async function getEpisodeFantasyPoints(episodeId: number): Promise<Episod
     totalPoints: Number(r.totalPoints),
     breakdown: breakdownMap[r.castMemberId] ?? [],
   }));
+    },
+    ["fantasy-points", String(episodeId)],
+    { tags: ["episodes"] }
+  )();
 }
 
-export async function getTribalVotes(episodeId: number): Promise<TribalVoteRow[]> {
+export function getTribalVotes(episodeId: number): Promise<TribalVoteRow[]> {
+  return unstable_cache(
+    async (): Promise<TribalVoteRow[]> => {
   const voter = alias(castMembersTable, "voter");
   const votedFor = alias(castMembersTable, "voted_for");
   const eliminated = alias(castMembersTable, "eliminated");
@@ -209,4 +249,8 @@ export async function getTribalVotes(episodeId: number): Promise<TribalVoteRow[]
   }
 
   return Object.values(councilMap).sort((a, b) => a.sequence - b.sequence);
+    },
+    ["tribal-votes", String(episodeId)],
+    { tags: ["episodes"] }
+  )();
 }

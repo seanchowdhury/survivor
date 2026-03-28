@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { db } from "@/db";
 import { sql, eq } from "drizzle-orm";
 import { castMembersTable, castMemberEpisodePointsTable, confessionalCountTable, episodesTable } from "@/db/schema";
@@ -60,7 +61,8 @@ const STAT_CATEGORIES: { label: string; eventTypes: string[] }[] = [
   },
 ];
 
-export async function getSeasonTotals(): Promise<SeasonCastMemberRow[]> {
+export const getSeasonTotals = unstable_cache(
+  async (): Promise<SeasonCastMemberRow[]> => {
   const [totals, eventTotals] = await Promise.all([
     db
       .select({
@@ -135,7 +137,10 @@ export async function getSeasonTotals(): Promise<SeasonCastMemberRow[]> {
       stats,
     };
   });
-}
+  },
+  ["season-totals"],
+  { tags: ["season"] }
+);
 
 export type HeatmapData = {
   episodes: { id: number; episodeNumber: number | null; title: string; mergeOccurred: boolean }[];
@@ -150,7 +155,8 @@ export type HeatmapData = {
   maxCount: number;
 };
 
-export async function getConfessionalHeatmap(): Promise<HeatmapData> {
+export const getConfessionalHeatmap = unstable_cache(
+  async (): Promise<HeatmapData> => {
   const [episodes, countRows] = await Promise.all([
     db
       .select({
@@ -220,4 +226,7 @@ export async function getConfessionalHeatmap(): Promise<HeatmapData> {
   });
 
   return { episodes, castaways, maxCount };
-}
+  },
+  ["confessional-heatmap"],
+  { tags: ["season"] }
+);

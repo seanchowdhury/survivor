@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/db";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -352,6 +353,7 @@ export async function recalculateEpisodeScores(episodeId: number) {
   }
 
   await recalculateSeasonScores();
+  revalidateTag("episodes", "default");
 }
 
 export async function recalculateSeasonScores() {
@@ -480,6 +482,8 @@ export async function recalculateSeasonScores() {
   if (entries.length > 0) {
     await db.insert(castMemberEpisodePointsTable).values(entries);
   }
+  revalidateTag("season", "default");
+  revalidateTag("leaderboard", "default");
 }
 
 export type LeaderboardEntry = {
@@ -494,7 +498,8 @@ export type LeaderboardEntry = {
   }[];
 };
 
-export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+export const getLeaderboard = unstable_cache(
+  async (): Promise<LeaderboardEntry[]> => {
   // Total points per participant
   const totals = await db
     .select({
@@ -573,7 +578,10 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     totalPoints: Number(t.totalPoints),
     episodeBreakdown: breakdownByParticipant[t.participantId] ?? [],
   }));
-}
+  },
+  ["leaderboard"],
+  { tags: ["leaderboard"] }
+);
 
 export async function seedScoringRules() {
   const newRules = [
