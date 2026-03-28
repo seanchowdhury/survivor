@@ -273,7 +273,7 @@ export function PollClient({ data, hasVoted, isClosed, nonce, jt }: Props) {
               : "bg-gray-800 text-gray-500 cursor-not-allowed"
           )}
         >
-          {submitting ? "Submitting…" : "Submit Predictions"}
+          {submitting ? "Submitting…" : "Submit"}
         </button>
         <button
           onClick={() => setSubmitted(true)}
