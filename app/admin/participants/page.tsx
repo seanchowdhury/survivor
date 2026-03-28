@@ -5,6 +5,8 @@ import {
   getEpisodeRoster,
   createParticipant,
   deleteParticipant,
+  linkParticipantToUser,
+  unlinkParticipant,
 } from "./actions";
 import ParticipantRosterEditor from "./participant-roster-editor";
 
@@ -64,14 +66,42 @@ export default async function ParticipantsPage() {
       <div className="space-y-6">
         {participants.map((p, i) => (
           <div key={p.id} className="space-y-2">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="font-medium">{p.name}</span>
+              {p.userId ? (
+                <span className="text-xs text-green-600">
+                  linked: {p.userId.slice(0, 8)}…
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">not linked</span>
+              )}
+              <form action={async (formData: FormData) => {
+                "use server";
+                const email = formData.get("email") as string;
+                if (email?.trim()) await linkParticipantToUser(p.id, email.trim());
+              }} className="flex gap-1">
+                <input
+                  name="email"
+                  placeholder="Link by email"
+                  className="border rounded px-2 py-0.5 text-xs w-44"
+                />
+                <button type="submit" className="text-xs px-2 py-0.5 border rounded hover:bg-muted">
+                  Link
+                </button>
+              </form>
+              {p.userId && (
+                <form action={async () => {
+                  "use server";
+                  await unlinkParticipant(p.id);
+                }}>
+                  <button type="submit" className="text-xs text-muted-foreground hover:underline">
+                    Unlink
+                  </button>
+                </form>
+              )}
               <form action={handleDelete}>
                 <input type="hidden" name="id" value={p.id} />
-                <button
-                  type="submit"
-                  className="text-xs text-destructive hover:underline"
-                >
+                <button type="submit" className="text-xs text-destructive hover:underline">
                   Delete
                 </button>
               </form>

@@ -194,6 +194,7 @@ export type InsertMisc = typeof miscTable.$inferInsert;
 export const participantsTable = pgTable("participants_table", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  userId: text("user_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

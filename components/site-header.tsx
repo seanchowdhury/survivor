@@ -12,8 +12,6 @@ import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuList,
-  NavigationMenuLink,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import {
   Sheet,
@@ -24,12 +22,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const PUBLIC_LINKS = [
-  { href: "/", label: "Episodes" },
-  { href: "/season", label: "Season" },
+  { href: "/", label: "Episodes", matchPrefix: "/episode" },
+  { href: "/season", label: "Season", matchPrefix: "/season" },
 ];
 
 const AUTHED_LINKS = [
-  { href: "/roster", label: "Roster" },
+  { href: "/roster", label: "Roster", matchPrefix: "/roster" },
 ];
 
 const BAR_CLASSES =
@@ -47,17 +45,24 @@ export function SiteHeader() {
       <header className={cn(BAR_CLASSES, "hidden md:flex")}>
         <NavigationMenu>
           <NavigationMenuList>
-            {navLinks.map(({ href, label }) => (
-              <NavigationMenuItem key={href}>
-                <NavigationMenuLink
-                  asChild
-                  active={pathname === href || (href !== "/" && pathname.startsWith(href))}
-                  className={cn(navigationMenuTriggerStyle(), "text-white hover:text-black focus:text-black data-[active]:text-black")}
-                >
-                  <Link href={href}>{label}</Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            ))}
+            {navLinks.map(({ href, label, matchPrefix }) => {
+              const active = pathname === href || pathname.startsWith(matchPrefix);
+              return (
+                <NavigationMenuItem key={href}>
+                  <Link
+                    href={href}
+                    className={cn(
+                      "inline-flex h-9 items-center px-4 rounded-2xl text-sm font-medium transition-colors",
+                      active
+                        ? "bg-white/10 text-white"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    {label}
+                  </Link>
+                </NavigationMenuItem>
+              );
+            })}
           </NavigationMenuList>
         </NavigationMenu>
         <UserButton size="icon" />
@@ -83,8 +88,8 @@ export function SiteHeader() {
             <SheetTitle className="text-white text-left">🔥 Survivor Fantasy</SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col gap-1">
-            {navLinks.map(({ href, label }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+            {navLinks.map(({ href, label, matchPrefix }) => {
+              const active = pathname === href || pathname.startsWith(matchPrefix);
               return (
                 <Link
                   key={href}

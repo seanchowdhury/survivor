@@ -483,6 +483,6 @@ export async function createAdvantage(
 
 export async function getEpisodes() {
   return (await db.select().from(episodesTable)).sort(
-    (a, b) => a.episodeNumber! - b.episodeNumber!,
+    (a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0),
   );
 }

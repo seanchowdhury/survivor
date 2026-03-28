@@ -470,8 +470,8 @@ export async function processEpisodeWiki(
   let episodeByTitle;
   try {
     episodeByTitle = await getEpisodeByTitle(title);
-  } catch (e) {
-    console.log("Did not find episode in DB");
+  } catch (_) {
+    // Episode not found in DB — continue to create it
   }
   if (episodeByTitle) redirect("/admin/episode/" + episodeByTitle.id);
 

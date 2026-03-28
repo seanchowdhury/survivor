@@ -13,14 +13,12 @@ async function getInviteCodeValid(inviteCode: SelectInvite['code']): Promise<Sel
 }
 
 async function updateInviteCode(inviteCode: SelectInvite, userId: string): Promise<void> {
-  console.log({inviteCode, userId})
   try {
     await db.update(invitesTable).set({ claimedByUserId: userId }).where(eq(invitesTable.id, inviteCode.id))
   } catch (e) {
-    const errorLog: InsertErrorLog = { message: `Error updating error code: ${inviteCode.id}, ${e}`, context: "updatingInviteCode"} 
-    await db.update(errorLogs).set(errorLog)
+    const errorLog: InsertErrorLog = { message: `Error updating invite code: ${inviteCode.id}, ${e}`, context: "updatingInviteCode" }
+    await db.insert(errorLogs).values(errorLog)
   }
-
 }
 
 export async function signUpWithEmail(
@@ -55,7 +53,7 @@ export async function signUpWithEmail(
 
   await updateInviteCode(inviteCode, data.user.id);
 
-  resend.emails.send({
+  void resend.emails.send({
     from: 'no-reply@contact.seanc.how',
     to: [email],
     subject: 'Come on in guys',

@@ -190,6 +190,13 @@
       "when": 1774664557211,
       "tag": "0026_goofy_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1774669365082,
+      "tag": "0027_complete_hercules",
+      "breakpoints": true
     }
   ]
 }

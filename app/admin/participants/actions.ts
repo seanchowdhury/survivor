@@ -9,6 +9,7 @@ import {
   participantsTable,
 } from "@/db/schema";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth/server";
 
 export async function getParticipants() {
   return await db
@@ -83,6 +84,32 @@ export async function getAllCastMembers() {
     .select()
     .from(castMembersTable)
     .orderBy(castMembersTable.name);
+}
+
+export async function linkParticipantToUser(participantId: number, email: string) {
+  const admin = auth.admin as {
+    listUsers: (opts: { query: { searchValue: string; searchField: string; searchOperator: string } }) => Promise<{ data?: { users?: { id: string; email: string }[] } }>;
+  };
+  const result = await admin.listUsers({
+    query: { searchValue: email, searchField: "email", searchOperator: "contains" },
+  });
+  const user = result.data?.users?.find(
+    (u) => u.email.toLowerCase() === email.toLowerCase()
+  );
+  if (!user) return { error: "No user found with that email." };
+  await db
+    .update(participantsTable)
+    .set({ userId: user.id })
+    .where(eq(participantsTable.id, participantId));
+  revalidatePath("/admin/participants");
+}
+
+export async function unlinkParticipant(participantId: number) {
+  await db
+    .update(participantsTable)
+    .set({ userId: null })
+    .where(eq(participantsTable.id, participantId));
+  revalidatePath("/admin/participants");
 }
 
 // Returns the cast member IDs for the episode immediately before the given one
