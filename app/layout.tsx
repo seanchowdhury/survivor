@@ -2,6 +2,7 @@ import { authClient } from "@/lib/auth/client";
 import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,15 @@ export default function RootLayout({
           redirectTo="/account/settings"
           emailOTP
         >
+          <nav className="fixed top-4 left-4 z-50 flex items-center gap-2 text-sm">
+            <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+              Episodes
+            </Link>
+            <span className="text-gray-600">·</span>
+            <Link href="/season" className="text-gray-400 hover:text-white transition-colors">
+              Season
+            </Link>
+          </nav>
           <div className="fixed top-4 right-4 z-50">
             <UserButton size="icon" />
           </div>

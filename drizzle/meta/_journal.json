@@ -183,6 +183,13 @@
       "when": 1774647678907,
       "tag": "0025_tiresome_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774664557211,
+      "tag": "0026_goofy_karnak",
+      "breakpoints": true
     }
   ]
 }
