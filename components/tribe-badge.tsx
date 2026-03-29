@@ -1,4 +1,4 @@
-export function TribeBadge({ tribe, size = "sm" }: { tribe: string; size?: "sm" | "md" }) {
+export function TribeBadge({ tribe, size = "sm", suffix }: { tribe: string; size?: "sm" | "md"; suffix?: string }) {
   const styles: Record<string, string> = {
     cila: "bg-orange-500/20 text-orange-300 border border-orange-500/30",
     kalo: "bg-teal-500/20 text-teal-300 border border-teal-500/30",
@@ -8,7 +8,7 @@ export function TribeBadge({ tribe, size = "sm" }: { tribe: string; size?: "sm" 
   const textSize = size === "md" ? "text-sm" : "text-xs";
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full font-semibold capitalize ${textSize} ${cls}`}>
-      {tribe}
+      {tribe}{suffix ? ` · ${suffix}` : ""}
     </span>
   );
 }

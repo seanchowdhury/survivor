@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChallengeWinsEntry } from "./actions";
@@ -65,16 +66,18 @@ export function ChallengeWins({ entries }: { entries: ChallengeWinsEntry[] }) {
 function Row({ entry, dim }: { entry: ChallengeWinsEntry; dim?: boolean }) {
   return (
     <div className={cn("flex items-center gap-3 py-1", dim && "opacity-50")}>
-      <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-700">
-        <Image
-          src={entry.imageUrl}
-          alt={entry.name}
-          fill
-          className="object-cover object-top"
-          sizes="32px"
-        />
-      </div>
-      <span className="flex-1 text-xs text-gray-300 truncate">{entry.name}</span>
+      <Link href={`/player/${entry.castMemberId}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-700">
+          <Image
+            src={entry.imageUrl}
+            alt={entry.name}
+            fill
+            className="object-cover object-top"
+            sizes="32px"
+          />
+        </div>
+        <span className="text-xs text-gray-300 truncate">{entry.name}</span>
+      </Link>
       <span className="text-white font-bold text-sm tabular-nums shrink-0">{entry.wins}</span>
     </div>
   );

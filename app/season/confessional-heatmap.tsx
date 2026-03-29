@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { HeatmapData } from "./actions";
 
@@ -60,7 +61,7 @@ export function ConfessionalHeatmap({ data }: { data: HeatmapData }) {
               return (
                 <tr key={castaway.castMemberId}>
                   <td className="pr-3 py-0.5">
-                    <div className={`flex items-center gap-2 ${isEliminated ? "opacity-50" : ""}`}>
+                    <Link href={`/player/${castaway.castMemberId}`} className={`flex items-center gap-2 hover:opacity-80 transition-opacity ${isEliminated ? "opacity-50" : ""}`}>
                       <div className="relative w-6 h-6 rounded-full overflow-hidden shrink-0 bg-gray-700">
                         <Image
                           src={castaway.imageUrl}
@@ -73,7 +74,7 @@ export function ConfessionalHeatmap({ data }: { data: HeatmapData }) {
                       <span className="text-xs text-gray-300 truncate max-w-[88px]">
                         {castaway.name}
                       </span>
-                    </div>
+                    </Link>
                   </td>
 
                   {castaway.counts.map((count, epIdx) => {

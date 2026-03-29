@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { RightSideEntry } from "./actions";
 
 export function RightSideOfVote({ entries }: { entries: RightSideEntry[] }) {
@@ -27,7 +28,7 @@ export function RightSideOfVote({ entries }: { entries: RightSideEntry[] }) {
               return (
                 <tr key={entry.castMemberId} className="border-b border-gray-700/50 last:border-0">
                   <td className="py-2 pr-4">
-                    <div className="flex items-center gap-2">
+                    <Link href={`/player/${entry.castMemberId}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                       <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 bg-gray-700">
                         <Image
                           src={entry.imageUrl}
@@ -38,7 +39,7 @@ export function RightSideOfVote({ entries }: { entries: RightSideEntry[] }) {
                         />
                       </div>
                       <span className="text-xs text-gray-300 truncate">{entry.name}</span>
-                    </div>
+                    </Link>
                   </td>
                   <td className="py-2 pl-6 text-right text-sm font-bold text-white tabular-nums whitespace-nowrap">
                     {entry.rightVotes}

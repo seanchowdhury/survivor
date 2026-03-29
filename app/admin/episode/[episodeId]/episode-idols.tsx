@@ -17,6 +17,8 @@ import {
   IdolOrAdvantage,
   updateIdolUsed,
   updateAdvantageUsed,
+  deleteIdol,
+  deleteAdvantage,
   createIdol,
   createAdvantage,
 } from "./actions";
@@ -34,13 +36,22 @@ function ItemRow({
   episodeId,
   value,
   onChange,
+  onDelete,
 }: {
   item: IdolOrAdvantage;
   castMembers: SelectCastMember[];
   episodeId: number;
   value: string;
   onChange: (val: string) => void;
+  onDelete?: (id: number) => Promise<void>;
 }) {
+  const router = useRouter();
+
+  async function handleDelete() {
+    await onDelete!(item.id);
+    router.refresh();
+  }
+
   return (
     <Card size="sm">
       <CardContent className="flex items-center gap-4 py-3">
@@ -73,6 +84,11 @@ function ItemRow({
             </span>
           )}
       </div>
+      {onDelete && (
+        <Button size="sm" variant="destructive" onClick={handleDelete}>
+          Delete
+        </Button>
+      )}
       </CardContent>
     </Card>
   );
@@ -168,6 +184,7 @@ function Section({
   episodeId,
   onUpdate,
   onCreate,
+  onDelete,
 }: {
   title: string;
   items: IdolOrAdvantage[];
@@ -184,6 +201,7 @@ function Section({
     label: string | null,
     currentHolderId: number | null,
   ) => Promise<void>;
+  onDelete?: (id: number) => Promise<void>;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -225,6 +243,7 @@ function Section({
             onChange={(val) =>
               setPendingChanges((prev) => ({ ...prev, [item.id]: val }))
             }
+            onDelete={onDelete}
           />
         ))}
       </div>
@@ -265,6 +284,7 @@ export default function EpisodeIdols({
           updateIdolUsed(id, usedByCastMemberId, usedInEpisodeId)
         }
         onCreate={createIdol}
+        onDelete={deleteIdol}
       />
       <Section
         title="Advantages"
@@ -275,6 +295,7 @@ export default function EpisodeIdols({
           updateAdvantageUsed(id, usedByCastMemberId, usedInEpisodeId)
         }
         onCreate={createAdvantage}
+        onDelete={deleteAdvantage}
       />
     </div>
   );

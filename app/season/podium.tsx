@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { TribeBadge } from "@/components/tribe-badge";
 import type { SeasonCastMemberRow } from "./actions";
 
@@ -32,8 +33,9 @@ function PodiumCard({ member, rank }: { member: SeasonCastMemberRow; rank: numbe
   const nonZeroStats = member.stats.filter((s) => s.points !== 0);
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl bg-gray-800 ${CARD_HEIGHTS[rank]} ${style.glow} flex flex-col`}
+    <Link
+      href={`/player/${member.castMemberId}`}
+      className={`relative overflow-hidden rounded-2xl bg-gray-800 ${CARD_HEIGHTS[rank]} ${style.glow} flex flex-col hover:brightness-110 transition-[filter]`}
     >
       {/* Portrait */}
       <div className="absolute inset-0">
@@ -89,7 +91,7 @@ function PodiumCard({ member, rank }: { member: SeasonCastMemberRow; rank: numbe
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 

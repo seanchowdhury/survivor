@@ -44,6 +44,7 @@ export const castMembersTable = pgTable("cast_members_table", {
   quit: boolean("quit").notNull().default(false),
   finalPlacement: integer("final_placement"),
   portraitImageUrl: text("portrait_image_url"),
+  quote: text("quote"),
 });
 
 export type SelectCastMember = typeof castMembersTable.$inferSelect;

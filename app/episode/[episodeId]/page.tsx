@@ -47,7 +47,7 @@ export default async function EpisodeShowPage({
           <div className="flex justify-between mt-3">
             {episode.prevId ? (
               <Link
-                href={`/episode/${episode.prevId}`}
+                href={`/episode/${episode.prevId}${activeTab === "fantasy" ? "?tab=fantasy" : ""}`}
                 className="text-sm text-gray-400 hover:text-white"
               >
                 ← Episode {episode.prevNumber}
@@ -57,7 +57,7 @@ export default async function EpisodeShowPage({
             )}
             {episode.nextId && (
               <Link
-                href={`/episode/${episode.nextId}`}
+                href={`/episode/${episode.nextId}${activeTab === "fantasy" ? "?tab=fantasy" : ""}`}
                 className="text-sm text-gray-400 hover:text-white"
               >
                 Episode {episode.nextNumber} →
@@ -115,18 +115,20 @@ export default async function EpisodeShowPage({
             <div className="flex flex-col gap-2">
               {confessionals.map((c) => (
                 <div key={c.name} className="flex items-center gap-3">
-                  {c.imageUrl ? (
-                    <Image
-                      src={c.imageUrl}
-                      alt={c.name}
-                      width={32}
-                      height={32}
-                      className="rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-700 shrink-0" />
-                  )}
-                  <span className="w-32 text-sm truncate">{c.name}</span>
+                  <Link href={`/player/${c.castMemberId}`} className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity">
+                    {c.imageUrl ? (
+                      <Image
+                        src={c.imageUrl}
+                        alt={c.name}
+                        width={32}
+                        height={32}
+                        className="rounded-full object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-700 shrink-0" />
+                    )}
+                    <span className="w-32 text-sm truncate">{c.name}</span>
+                  </Link>
                   <div className="flex-1 bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-blue-500 h-2 rounded-full"

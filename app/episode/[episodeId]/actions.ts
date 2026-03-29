@@ -57,6 +57,7 @@ export function getConfessionalCounts(episodeId: number, episodeNumber: number) 
 
   const results = await db
     .select({
+      castMemberId: castMembersTable.id,
       name: castMembersTable.name,
       count: confessionalCountTable.count,
       imageUrl: castMembersTable.imageUrl,
@@ -72,7 +73,7 @@ export function getConfessionalCounts(episodeId: number, episodeNumber: number) 
       const elimNum = r.eliminatedEpisodeNumber;
       return elimNum === null || elimNum >= episodeNumber;
     })
-    .map((r) => ({ name: r.name, count: r.count, imageUrl: r.imageUrl }))
+    .map((r) => ({ castMemberId: r.castMemberId, name: r.name, count: r.count, imageUrl: r.imageUrl }))
     .sort((a, b) => b.count - a.count);
     },
     ["confessionals", String(episodeId)],

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { getMyRoster } from "./actions";
@@ -51,9 +52,10 @@ export default async function RosterPage() {
                   {data.currentRoster.map((member) => {
                     const imageUrl = member.portraitImageUrl ?? member.imageUrl;
                     return (
-                      <div
+                      <Link
                         key={member.castMemberId}
-                        className={`relative overflow-hidden rounded-xl bg-gray-800 aspect-[3/4] ${member.isEliminated ? "opacity-50" : ""}`}
+                        href={`/player/${member.castMemberId}`}
+                        className={`relative overflow-hidden rounded-xl bg-gray-800 aspect-[3/4] block hover:brightness-110 transition-[filter] ${member.isEliminated ? "opacity-50" : ""}`}
                       >
                         <Image
                           src={imageUrl}
@@ -72,7 +74,7 @@ export default async function RosterPage() {
                             </span>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>

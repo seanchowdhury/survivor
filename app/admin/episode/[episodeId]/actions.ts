@@ -410,6 +410,15 @@ export async function updateAdvantageUsed(
     .where(eq(advantagesTable.id, advantageId));
 }
 
+export async function deleteIdol(idolId: number) {
+  const [existing] = await db
+    .select()
+    .from(idolsTable)
+    .where(eq(idolsTable.id, idolId));
+  await db.delete(idolsTable).where(eq(idolsTable.id, idolId));
+  if (existing) await recalculateEpisodeScores(existing.foundInEpisodeId);
+}
+
 export async function createIdol(
   foundByCastMemberId: number,
   foundInEpisodeId: number,
@@ -465,6 +474,15 @@ export async function deleteMiscEntry(id: number) {
     .where(eq(miscTable.id, id));
   await db.delete(miscTable).where(eq(miscTable.id, id));
   if (row) await recalculateEpisodeScores(row.episodeId);
+}
+
+export async function deleteAdvantage(advantageId: number) {
+  const [existing] = await db
+    .select()
+    .from(advantagesTable)
+    .where(eq(advantagesTable.id, advantageId));
+  await db.delete(advantagesTable).where(eq(advantagesTable.id, advantageId));
+  if (existing) await recalculateEpisodeScores(existing.foundInEpisodeId);
 }
 
 export async function createAdvantage(

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   Accordion,
   AccordionContent,
@@ -93,6 +94,9 @@ export default function EpisodeFantasy({ players, currentEpisodeNumber }: Props)
                   ))}
                 </div>
               )}
+              <Link href={`/player/${p.castMemberId}`} className="text-xs text-gray-500 hover:text-gray-300 transition-colors pl-10 mt-1 inline-block">
+                View profile →
+              </Link>
             </AccordionContent>
           </AccordionItem>
         );

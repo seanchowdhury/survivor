@@ -218,6 +218,13 @@
       "when": 1774710389698,
       "tag": "0030_boring_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1774810664631,
+      "tag": "0031_quick_ozymandias",
+      "breakpoints": true
     }
   ]
 }

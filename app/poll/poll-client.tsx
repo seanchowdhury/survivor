@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { PollData, PollResult } from "./actions";
@@ -408,7 +409,7 @@ function ResultsSection({
             const isMyVote = result.castMemberId === myVote;
             return (
               <div key={result.castMemberId} className="flex items-center gap-3">
-                <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-700 shrink-0">
+                <Link href={`/player/${member.id}`} className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-700 shrink-0 hover:opacity-80 transition-opacity">
                   <Image
                     src={member.imageUrl}
                     alt={member.name}
@@ -416,7 +417,7 @@ function ResultsSection({
                     className="object-cover object-top"
                     sizes="32px"
                   />
-                </div>
+                </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className={cn("text-xs font-medium truncate", isMyVote ? "text-orange-300" : "text-gray-300")}>

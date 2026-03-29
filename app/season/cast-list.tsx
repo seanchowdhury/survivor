@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { TribeBadge } from "@/components/tribe-badge";
 import type { SeasonCastMemberRow } from "./actions";
 
@@ -16,21 +17,23 @@ function CastListRow({
       <span className="text-xs text-gray-500 w-6 text-right shrink-0 tabular-nums">
         {rank}
       </span>
-      <div className="relative w-10 h-10 shrink-0">
-        <Image
-          src={member.imageUrl}
-          alt={member.name}
-          fill
-          className={`rounded-full object-cover object-top ${member.isEliminated ? "grayscale opacity-50" : ""}`}
-          sizes="40px"
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${member.isEliminated ? "text-gray-400" : "text-white"}`}>
-          {member.name}
-        </p>
-        <TribeBadge tribe={member.tribe} />
-      </div>
+      <Link href={`/player/${member.castMemberId}`} className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity">
+        <div className="relative w-10 h-10 shrink-0">
+          <Image
+            src={member.imageUrl}
+            alt={member.name}
+            fill
+            className={`rounded-full object-cover object-top ${member.isEliminated ? "grayscale opacity-50" : ""}`}
+            sizes="40px"
+          />
+        </div>
+        <div className="min-w-0">
+          <p className={`text-sm font-medium truncate ${member.isEliminated ? "text-gray-400" : "text-white"}`}>
+            {member.name}
+          </p>
+          <TribeBadge tribe={member.tribe} />
+        </div>
+      </Link>
       <div className="hidden sm:flex gap-3">
         {topStats.map((s) => (
           <span key={s.label} className="text-xs text-gray-500">

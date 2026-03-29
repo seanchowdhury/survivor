@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { VotesAgainstEntry } from "./actions";
 
 export function VotesAgainst({
@@ -35,16 +36,18 @@ export function VotesAgainst({
               key={entry.castMemberId}
               className="flex items-center gap-3 py-1"
             >
-              <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-700">
-                <Image
-                  src={entry.imageUrl}
-                  alt={entry.name}
-                  fill
-                  className="object-cover object-top"
-                  sizes="32px"
-                />
-              </div>
-              <span className="flex-1 text-xs text-gray-300 truncate">{entry.name}</span>
+              <Link href={`/player/${entry.castMemberId}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-700">
+                  <Image
+                    src={entry.imageUrl}
+                    alt={entry.name}
+                    fill
+                    className="object-cover object-top"
+                    sizes="32px"
+                  />
+                </div>
+                <span className="text-xs text-gray-300 truncate">{entry.name}</span>
+              </Link>
               {hasMerge ? (
                 <div className="flex gap-6 shrink-0 text-xs tabular-nums w-32 justify-end">
                   <span className="text-amber-400 w-8 text-center">{entry.preMerge}</span>
