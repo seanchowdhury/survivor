@@ -59,8 +59,8 @@ export function PlayerStatsSection({ stats }: { stats: PlayerStats }) {
         <div className="bg-gray-800 rounded-lg p-4">
           <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">Idols & Advantages</p>
           <div className="flex flex-col gap-2">
-            {idols.map((item, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
+            {idols.map((item) => (
+              <div key={`${item.type}-${item.foundInEpisode}-${item.label}`} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-300">
                     {item.label ?? (item.type === "idol" ? "Hidden Immunity Idol" : "Advantage")}

@@ -39,7 +39,7 @@ export function ConfessionalChart({ data }: { data: ConfessionalPoint[] }) {
             contentStyle={{ backgroundColor: "#1f2937", border: "none", borderRadius: "8px", fontSize: 12 }}
             labelStyle={{ color: "#9ca3af" }}
             labelFormatter={(v) => `Episode ${v}`}
-            formatter={(value: number, name: string) => [
+            formatter={(value, name) => [
               value,
               name === "count" ? "Confessionals" : "Average",
             ]}

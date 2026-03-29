@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/db";
-import { eq, sql, and, isNotNull } from "drizzle-orm";
+import { eq, sql, and, isNotNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   castMembersTable,
@@ -55,12 +55,11 @@ export const getPlayerStats = (castMemberId: number) =>
     async (): Promise<PlayerStats> => {
       const votedFor = alias(castMembersTable, "voted_for");
 
-      const [voteRows, challengeRows, votecastRows, idolRows, advantageRows] = await Promise.all([
+      const [voteRows, challengeRows, votecastRows, idolRows, advantageRows, mergeEpRows] = await Promise.all([
         // Votes against this player
         db
           .select({
             episodeNumber: episodesTable.episodeNumber,
-            mergeOccurred: episodesTable.mergeOccurred,
           })
           .from(tribalVotesTable)
           .innerJoin(tribalCouncilsTable, eq(tribalCouncilsTable.id, tribalVotesTable.tribalCouncilId))
@@ -107,10 +106,18 @@ export const getPlayerStats = (castMemberId: number) =>
           })
           .from(advantagesTable)
           .where(eq(advantagesTable.currentHolderId, castMemberId)),
+
+        // Merge episode for this player's season
+        db
+          .select({ episodeNumber: episodesTable.episodeNumber })
+          .from(episodesTable)
+          .innerJoin(castMembersTable, eq(castMembersTable.seasonNumber, episodesTable.seasonNumber))
+          .where(and(eq(episodesTable.mergeOccurred, true), eq(castMembersTable.id, castMemberId)))
+          .limit(1),
       ]);
 
       // Votes against
-      const mergeEpNum = voteRows.find((r) => r.mergeOccurred)?.episodeNumber ?? null;
+      const mergeEpNum = mergeEpRows[0]?.episodeNumber ?? null;
       let preMerge = 0, postMerge = 0;
       for (const r of voteRows) {
         const isPost = mergeEpNum != null && r.episodeNumber != null && r.episodeNumber >= mergeEpNum;
@@ -135,7 +142,7 @@ export const getPlayerStats = (castMemberId: number) =>
         ...advantageRows.map((r) => r.foundInEpisodeId),
       ];
       const epNumbers = epIds.length > 0
-        ? await db.select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber }).from(episodesTable)
+        ? await db.select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber }).from(episodesTable).where(inArray(episodesTable.id, epIds))
         : [];
       const epNumMap = new Map(epNumbers.map((e) => [e.id, e.episodeNumber]));
 
@@ -162,7 +169,7 @@ export const getPlayerStats = (castMemberId: number) =>
       };
     },
     ["player-stats", String(castMemberId)],
-    { tags: ["episodes"] }
+    { tags: ["episodes", "cast-members", "tribal-votes", "challenges", "idols"] }
   )();
 
 export type ConfessionalPoint = {
@@ -220,7 +227,8 @@ export const getPlayerConfessionals = (castMemberId: number) =>
 
       const episodes = await db
         .select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber })
-        .from(episodesTable);
+        .from(episodesTable)
+        .where(inArray(episodesTable.id, episodeIds));
 
       const epNumMap = new Map(episodes.map((e) => [e.id, e.episodeNumber]));
       const avgMap = new Map(avgRows.map((r) => [r.episodeId, r.avg]));
@@ -370,12 +378,21 @@ export type SeasonRank = {
 export const getPlayerSeasonRank = (castMemberId: number) =>
   unstable_cache(
     async (): Promise<SeasonRank> => {
+      const [player] = await db
+        .select({ seasonNumber: castMembersTable.seasonNumber })
+        .from(castMembersTable)
+        .where(eq(castMembersTable.id, castMemberId));
+
+      if (!player?.seasonNumber) return { totalPoints: 0, rank: 1, totalPlayers: 1 };
+
       const rows = await db
         .select({
           castMemberId: castMemberEpisodePointsTable.castMemberId,
           total: sql<number>`sum(${castMemberEpisodePointsTable.points})`,
         })
         .from(castMemberEpisodePointsTable)
+        .innerJoin(castMembersTable, eq(castMembersTable.id, castMemberEpisodePointsTable.castMemberId))
+        .where(eq(castMembersTable.seasonNumber, player.seasonNumber))
         .groupBy(castMemberEpisodePointsTable.castMemberId)
         .orderBy(sql`sum(${castMemberEpisodePointsTable.points}) desc`);
 
