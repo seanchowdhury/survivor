@@ -112,6 +112,7 @@ export async function recalculateEpisodeScores(episodeId: number) {
       id: castMembersTable.id,
       eliminatedEpisodeId: castMembersTable.eliminatedEpisodeId,
       eliminatedEpisodeNumber: elimEp.episodeNumber,
+      evacuated: castMembersTable.evacuated,
     })
     .from(castMembersTable)
     .leftJoin(elimEp, eq(elimEp.id, castMembersTable.eliminatedEpisodeId));
@@ -122,7 +123,8 @@ export async function recalculateEpisodeScores(episodeId: number) {
   for (const cm of castMembers) {
     const alive =
       cm.eliminatedEpisodeId === null ||
-      (cm.eliminatedEpisodeNumber ?? 0) > episodeNumber;
+      (cm.eliminatedEpisodeNumber ?? 0) > episodeNumber ||
+      (cm.evacuated && (cm.eliminatedEpisodeNumber ?? 0) === episodeNumber);
     if (alive) {
       accumulate(
         pts,
