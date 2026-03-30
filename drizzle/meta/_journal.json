@@ -225,6 +225,13 @@
       "when": 1774810664631,
       "tag": "0031_quick_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1774893459858,
+      "tag": "0032_mighty_vertigo",
+      "breakpoints": true
     }
   ]
 }

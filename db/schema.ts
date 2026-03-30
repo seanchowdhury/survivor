@@ -292,3 +292,18 @@ export const pollVotesTable = pgTable(
   },
   (t) => [unique().on(t.episodeId, t.question, t.castMemberId, t.voterToken)],
 );
+
+export type SelectPollVote = typeof pollVotesTable.$inferSelect;
+export type InsertPollVote = typeof pollVotesTable.$inferInsert;
+
+// Leaderboard trash talk comments
+export const leaderboardCommentsTable = pgTable("leaderboard_comments_table", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  authorName: text("author_name").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type SelectLeaderboardComment = typeof leaderboardCommentsTable.$inferSelect;
+export type InsertLeaderboardComment = typeof leaderboardCommentsTable.$inferInsert;

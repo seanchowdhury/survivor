@@ -1,16 +1,18 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/server";
 import { getLeaderboard } from "@/app/admin/leaderboard/actions";
+import { getComments } from "./actions";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { participantsTable } from "@/db/schema";
 import { cn } from "@/lib/utils";
+import { CommentSection } from "./comment-section";
 
 export default async function LeaderboardPage() {
   const { data: session } = await auth.getSession();
   if (!session?.user) redirect("/auth/sign-in");
 
-  const [entries, myParticipant] = await Promise.all([
+  const [entries, myParticipant, comments] = await Promise.all([
     getLeaderboard(),
     db
       .select({ id: participantsTable.id })
@@ -18,6 +20,7 @@ export default async function LeaderboardPage() {
       .where(eq(participantsTable.userId, session.user.id))
       .limit(1)
       .then((rows) => rows[0] ?? null),
+    getComments(),
   ]);
 
   const myParticipantId = myParticipant?.id ?? null;
@@ -85,6 +88,8 @@ export default async function LeaderboardPage() {
             })}
           </div>
         )}
+
+        <CommentSection comments={comments} />
       </div>
     </div>
   );
