@@ -232,6 +232,13 @@
       "when": 1774893459858,
       "tag": "0032_mighty_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1774980915239,
+      "tag": "0033_bitter_the_santerians",
+      "breakpoints": true
     }
   ]
 }

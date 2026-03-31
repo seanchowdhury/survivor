@@ -50,6 +50,22 @@ export const castMembersTable = pgTable("cast_members_table", {
 export type SelectCastMember = typeof castMembersTable.$inferSelect;
 export type InsertCastMember = typeof castMembersTable.$inferInsert;
 
+export const castMemberProfilesTable = pgTable("cast_member_profiles_table", {
+  id: serial("id").primaryKey(),
+  castMemberId: integer("cast_member_id")
+    .notNull()
+    .unique()
+    .references(() => castMembersTable.id, { onDelete: "cascade" }),
+  physical:         integer("physical"),          // 1–10
+  strategic:        integer("strategic"),         // 1–10
+  social:           integer("social"),            // 1–10
+  threatLevel:      integer("threat_level"),      // 1–10
+  highestPlacement: integer("highest_placement"), // raw placement, 1 = winner, cross-season
+});
+
+export type SelectCastMemberProfile = typeof castMemberProfilesTable.$inferSelect;
+export type InsertCastMemberProfile = typeof castMemberProfilesTable.$inferInsert;
+
 export const confessionalsTable = pgTable("confessionals_table", {
   id: serial("id").primaryKey(),
   castMemberId: integer("cast_member_id")

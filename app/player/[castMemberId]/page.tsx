@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { TribeBadge } from "@/components/tribe-badge";
 import {
   getCastMember,
+  getCastMemberProfile,
   getPlayerConfessionals,
   getPlayerStats,
   getPlayerFantasyPoints,
@@ -14,6 +15,7 @@ import { ConfessionalChart } from "./confessional-chart";
 import { FantasyChart } from "./fantasy-chart";
 import { EpisodeBreakdown } from "./episode-breakdown";
 import { PlayerStatsSection } from "./player-stats";
+import { PlayerRadarChart } from "./player-radar-chart";
 
 export default async function PlayerProfilePage({
   params,
@@ -61,7 +63,12 @@ export default async function PlayerProfilePage({
               <TribeBadge
                 tribe={player.tribe}
                 size="md"
-                suffix={player.eliminatedEpisodeId && player.eliminatedEpisodeNumber != null ? `Ep ${player.eliminatedEpisodeNumber}` : undefined}
+                suffix={
+                  player.eliminatedEpisodeId &&
+                  player.eliminatedEpisodeNumber != null
+                    ? `Ep ${player.eliminatedEpisodeNumber}`
+                    : undefined
+                }
               />
             )}
           </div>
@@ -109,11 +116,11 @@ export default async function PlayerProfilePage({
   );
 }
 
-
 async function RealityTabContent({ castMemberId }: { castMemberId: number }) {
-  const [confessionals, stats] = await Promise.all([
+  const [confessionals, stats, profile] = await Promise.all([
     getPlayerConfessionals(castMemberId),
     getPlayerStats(castMemberId),
+    getCastMemberProfile(castMemberId),
   ]);
   return (
     <>
@@ -121,6 +128,9 @@ async function RealityTabContent({ castMemberId }: { castMemberId: number }) {
         <ConfessionalChart data={confessionals} />
       </div>
       <PlayerStatsSection stats={stats} />
+      <div className="w-full max-w-xl px-4 mt-3">
+        <PlayerRadarChart profile={profile} />
+      </div>
     </>
   );
 }
@@ -134,7 +144,9 @@ async function FantasyTabContent({ castMemberId }: { castMemberId: number }) {
   return (
     <div className="w-full max-w-xl px-4 flex flex-col gap-3">
       <div className="bg-gray-800 rounded-lg px-5 py-4 flex items-baseline gap-2">
-        <span className="text-3xl font-black tabular-nums">{rank.totalPoints.toLocaleString()}</span>
+        <span className="text-3xl font-black tabular-nums">
+          {rank.totalPoints.toLocaleString()}
+        </span>
         <span className="text-sm text-gray-400">pts</span>
         <span className="text-gray-600 mx-1">·</span>
         <span className="text-lg font-bold text-gray-300">#{rank.rank}</span>

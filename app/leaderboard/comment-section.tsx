@@ -53,9 +53,7 @@ export function CommentSection({
       </form>
 
       {comments.length === 0 ? (
-        <p className="text-gray-600 text-sm">
-          No comments yet.
-        </p>
+        <p className="text-gray-600 text-sm">No comments yet.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {comments.map((comment) => (
@@ -68,7 +66,7 @@ export function CommentSection({
                   {formatRelativeTime(new Date(comment.createdAt))}
                 </span>
               </div>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+              <p className="text-sm text-gray-300 whitespace-pre-wrap wrap-break-word">
                 {comment.body}
               </p>
             </div>

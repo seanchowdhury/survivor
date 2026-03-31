@@ -4,6 +4,7 @@ import { eq, sql, and, isNotNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   castMembersTable,
+  castMemberProfilesTable,
   confessionalCountTable,
   episodesTable,
   tribalVotesTable,
@@ -13,6 +14,7 @@ import {
   idolsTable,
   advantagesTable,
   castMemberEpisodePointsTable,
+  type SelectCastMemberProfile,
 } from "@/db/schema";
 
 export const getCastMember = (castMemberId: number) =>
@@ -405,4 +407,17 @@ export const getPlayerSeasonRank = (castMemberId: number) =>
     },
     ["player-season-rank", String(castMemberId)],
     { tags: ["episodes"] }
+  )();
+
+export const getCastMemberProfile = (castMemberId: number) =>
+  unstable_cache(
+    async (): Promise<SelectCastMemberProfile | null> => {
+      const [row] = await db
+        .select()
+        .from(castMemberProfilesTable)
+        .where(eq(castMemberProfilesTable.castMemberId, castMemberId));
+      return row ?? null;
+    },
+    ["cast-member-profile", String(castMemberId)],
+    { tags: ["cast-members"] }
   )();
