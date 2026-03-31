@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSeasonTotals, getConfessionalHeatmap, getVotesAgainst, getChallengeWins, getContention, getRightSideOfVote, getIdolsAndAdvantages } from "./actions";
+import { getSeasonTotals, getConfessionalHeatmap, getVotesAgainst, getChallengeWins, getContention, getRightSideOfVote, getIdolsAndAdvantages, getAllianceGraphData } from "./actions";
 import { SeasonPodium } from "./podium";
 import { SeasonCastList } from "./cast-list";
 import { ConfessionalHeatmap } from "./confessional-heatmap";
@@ -8,6 +8,7 @@ import { ChallengeWins } from "./challenge-wins";
 import { Contention } from "./contention";
 import { RightSideOfVote } from "./right-side-of-vote";
 import { IdolsAndAdvantages } from "./idols-and-advantages";
+import { AllianceNetwork } from "./alliance-network";
 import { cn } from "@/lib/utils";
 
 export default async function SeasonPage({
@@ -18,7 +19,7 @@ export default async function SeasonPage({
   const { tab } = await searchParams;
   const activeTab = tab === "fantasy" ? "fantasy" : "reality";
 
-  const [cast, heatmapData, votesAgainst, challengeWins, contention, rightSide, idolsAndAdvantages] = await Promise.all([
+  const [cast, heatmapData, votesAgainst, challengeWins, contention, rightSide, idolsAndAdvantages, allianceGraph] = await Promise.all([
     getSeasonTotals(),
     getConfessionalHeatmap(),
     getVotesAgainst(),
@@ -26,6 +27,7 @@ export default async function SeasonPage({
     getContention(),
     getRightSideOfVote(),
     getIdolsAndAdvantages(),
+    getAllianceGraphData(),
   ]);
 
   const top3 = cast.slice(0, 3);
@@ -72,6 +74,7 @@ export default async function SeasonPage({
             <VotesAgainst entries={votesAgainst.entries} hasMerge={votesAgainst.hasMerge} />
             <RightSideOfVote entries={rightSide} />
             <Contention entries={contention} />
+            <AllianceNetwork data={allianceGraph} />
             <ChallengeWins entries={challengeWins} />
             <IdolsAndAdvantages entries={idolsAndAdvantages} />
           </>

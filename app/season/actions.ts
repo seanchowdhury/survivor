@@ -1,8 +1,8 @@
 import { unstable_cache } from "next/cache";
 import { db } from "@/db";
-import { sql, eq, isNotNull, isNull, and } from "drizzle-orm";
+import { sql, eq, isNotNull, isNull, and, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { castMembersTable, castMemberEpisodePointsTable, confessionalCountTable, episodesTable, tribalCouncilsTable, tribalVotesTable, challengesTable, challengeWinnersTable, idolsTable, advantagesTable } from "@/db/schema";
+import { castMembersTable, castMemberEpisodePointsTable, confessionalCountTable, episodesTable, tribalCouncilsTable, tribalVotesTable, challengesTable, challengeWinnersTable, idolsTable, advantagesTable, castMemberEpisodeTribeTable } from "@/db/schema";
 
 export type StatCategory = {
   label: string;
@@ -480,5 +480,195 @@ export const getIdolsAndAdvantages = unstable_cache(
     });
   },
   ["idols-and-advantages"],
+  { tags: ["episodes"] }
+);
+
+// ── Alliance Network Graph ────────────────────────────────────────────────────
+
+export type AllianceNode = {
+  id: number;
+  name: string;
+  imageUrl: string;
+  tribe: string;
+  currentTribe: string | null; // latest episode tribe from castMemberEpisodeTribeTable
+  isEliminated: boolean;
+  finalPlacement: number | null;
+};
+
+export type CoVoteEdge = {
+  playerAId: number;
+  playerBId: number;
+  coVoteCount: number;
+  preMergeCount: number;
+  postMergeCount: number;
+};
+
+export type AdvantagePairEdge = {
+  giverId: number;
+  receiverId: number;
+};
+
+export type ConflictEdge = {
+  voterId: number;
+  votedForId: number;
+  count: number;
+};
+
+export type CurrentTribePair = {
+  playerAId: number;
+  playerBId: number;
+};
+
+export type AllianceGraphData = {
+  nodes: AllianceNode[];
+  coVoteEdges: CoVoteEdge[];
+  advantagePairs: AdvantagePairEdge[];
+  conflictEdges: ConflictEdge[];
+  currentTribePairs: CurrentTribePair[];
+  mergeEpisodeNumber: number | null;
+};
+
+export const getAllianceGraphData = unstable_cache(
+  async (): Promise<AllianceGraphData> => {
+    const tvA = alias(tribalVotesTable, "tv_a");
+    const tvB = alias(tribalVotesTable, "tv_b");
+    const voter = alias(castMembersTable, "voter");
+    const votedFor = alias(castMembersTable, "voted_for");
+
+    const [castRows, coVoteRows, conflictRows, idolPassRows, advantagePassRows, mergeEp, latestTribeRows] = await Promise.all([
+      // All cast members
+      db.select({
+        id: castMembersTable.id,
+        name: castMembersTable.name,
+        imageUrl: castMembersTable.imageUrl,
+        tribe: castMembersTable.tribe,
+        eliminatedEpisodeId: castMembersTable.eliminatedEpisodeId,
+        finalPlacement: castMembersTable.finalPlacement,
+      }).from(castMembersTable),
+
+      // Co-vote pairs: two voters who voted for the same person at the same council
+      db.select({
+        playerAId: tvA.voterId,
+        playerBId: tvB.voterId,
+        coVoteCount: sql<number>`count(*)`,
+        preMergeCount: sql<number>`count(*) filter (where ${episodesTable.mergeOccurred} = false)`,
+        postMergeCount: sql<number>`count(*) filter (where ${episodesTable.mergeOccurred} = true)`,
+      })
+        .from(tvA)
+        .innerJoin(
+          tvB,
+          sql`${tvA.tribalCouncilId} = ${tvB.tribalCouncilId} and ${tvA.votedForId} = ${tvB.votedForId} and ${tvA.voterId} < ${tvB.voterId} and ${tvA.votedForId} is not null`
+        )
+        .innerJoin(tribalCouncilsTable, eq(tribalCouncilsTable.id, tvA.tribalCouncilId))
+        .innerJoin(episodesTable, eq(episodesTable.id, tribalCouncilsTable.episodeId))
+        .groupBy(tvA.voterId, tvB.voterId),
+
+      // Conflict edges: who voted for whom, across all councils
+      db.select({
+        voterId: voter.id,
+        votedForId: votedFor.id,
+        count: sql<number>`count(*)`,
+      })
+        .from(tribalVotesTable)
+        .innerJoin(voter, eq(voter.id, tribalVotesTable.voterId))
+        .innerJoin(votedFor, eq(votedFor.id, tribalVotesTable.votedForId))
+        .where(isNotNull(tribalVotesTable.votedForId))
+        .groupBy(voter.id, votedFor.id),
+
+      // Idol passes: idol found by A, currently held by B (B ≠ A)
+      db.select({
+        giverId: idolsTable.foundByCastMemberId,
+        receiverId: idolsTable.currentHolderId,
+      })
+        .from(idolsTable)
+        .where(and(isNotNull(idolsTable.currentHolderId), ne(idolsTable.currentHolderId, idolsTable.foundByCastMemberId))),
+
+      // Advantage passes: same pattern
+      db.select({
+        giverId: advantagesTable.foundByCastMemberId,
+        receiverId: advantagesTable.currentHolderId,
+      })
+        .from(advantagesTable)
+        .where(and(isNotNull(advantagesTable.currentHolderId), ne(advantagesTable.currentHolderId, advantagesTable.foundByCastMemberId))),
+
+      // Merge episode number
+      db.select({ episodeNumber: episodesTable.episodeNumber })
+        .from(episodesTable)
+        .where(eq(episodesTable.mergeOccurred, true))
+        .limit(1),
+
+      // Current tribe for each player (latest episode they appear in)
+      db.select({
+        castMemberId: castMemberEpisodeTribeTable.castMemberId,
+        tribe: castMemberEpisodeTribeTable.tribe,
+        episodeId: castMemberEpisodeTribeTable.episodeId,
+      }).from(castMemberEpisodeTribeTable),
+    ]);
+
+    // Derive current tribe per player (latest episodeId wins)
+    const currentTribeMap = new Map<number, string>();
+    const latestEpMap = new Map<number, number>();
+    for (const row of latestTribeRows) {
+      const prev = latestEpMap.get(row.castMemberId) ?? -1;
+      if (row.episodeId > prev) {
+        latestEpMap.set(row.castMemberId, row.episodeId);
+        currentTribeMap.set(row.castMemberId, row.tribe);
+      }
+    }
+
+    // Build current-tribe pairs (only active players on same tribe)
+    const activeByCastMember = new Map<number, string>();
+    for (const c of castRows) {
+      if (c.eliminatedEpisodeId === null) {
+        const ct = currentTribeMap.get(c.id);
+        if (ct) activeByCastMember.set(c.id, ct);
+      }
+    }
+    const byTribe = new Map<string, number[]>();
+    for (const [id, tribe] of activeByCastMember) {
+      const list = byTribe.get(tribe) ?? [];
+      list.push(id);
+      byTribe.set(tribe, list);
+    }
+    const currentTribePairs: CurrentTribePair[] = [];
+    for (const members of byTribe.values()) {
+      for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+          currentTribePairs.push({ playerAId: members[i], playerBId: members[j] });
+        }
+      }
+    }
+
+    const nodes: AllianceNode[] = castRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      imageUrl: r.imageUrl,
+      tribe: r.tribe,
+      currentTribe: currentTribeMap.get(r.id) ?? null,
+      isEliminated: r.eliminatedEpisodeId !== null,
+      finalPlacement: r.finalPlacement,
+    }));
+
+    const advantagePairs: AdvantagePairEdge[] = [
+      ...idolPassRows.map((r) => ({ giverId: r.giverId, receiverId: r.receiverId! })),
+      ...advantagePassRows.map((r) => ({ giverId: r.giverId, receiverId: r.receiverId! })),
+    ];
+
+    return {
+      nodes,
+      coVoteEdges: coVoteRows.map((r) => ({
+        playerAId: r.playerAId,
+        playerBId: r.playerBId,
+        coVoteCount: Number(r.coVoteCount),
+        preMergeCount: Number(r.preMergeCount),
+        postMergeCount: Number(r.postMergeCount),
+      })),
+      advantagePairs,
+      conflictEdges: conflictRows.map((r) => ({ voterId: r.voterId, votedForId: r.votedForId, count: Number(r.count) })),
+      currentTribePairs,
+      mergeEpisodeNumber: mergeEp[0]?.episodeNumber ?? null,
+    };
+  },
+  ["alliance-graph"],
   { tags: ["episodes"] }
 );
