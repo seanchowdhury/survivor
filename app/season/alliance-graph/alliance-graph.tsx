@@ -276,13 +276,33 @@ export function AllianceGraph({
         </g>
       </svg>
 
-      {/* Reset zoom */}
-      <button
-        onClick={() => setXform(defaultXformRef.current)}
-        className="absolute bottom-3 right-3 text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 transition-colors"
-      >
-        Reset zoom
-      </button>
+      {/* Zoom controls */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-1">
+        <button
+          onClick={() => setXform((prev) => {
+            const factor = 1.2;
+            return { x: prev.x, y: prev.y, k: Math.max(0.2, prev.k / factor) };
+          })}
+          className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors text-base leading-none"
+        >
+          −
+        </button>
+        <button
+          onClick={() => setXform(defaultXformRef.current)}
+          className="text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded px-2 h-7 transition-colors"
+        >
+          Reset
+        </button>
+        <button
+          onClick={() => setXform((prev) => {
+            const factor = 1.2;
+            return { x: prev.x, y: prev.y, k: Math.min(4, prev.k * factor) };
+          })}
+          className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors text-base leading-none"
+        >
+          +
+        </button>
+      </div>
 
       <AllianceGraphTooltip data={tooltipData} pos={tooltipPos} />
     </div>
