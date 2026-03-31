@@ -40,8 +40,7 @@ export function AllianceGraph({
 
   const simRef = useRef<d3Force.Simulation<SimNode, undefined> | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const isPanningRef = useRef(false);
-  const lastPosRef = useRef({ x: 0, y: 0 });
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
 
   const connectedIds = useCallback(
     (id: number): Set<number> => {
@@ -65,7 +64,7 @@ export function AllianceGraph({
     const initK = 2;
     const initXform = { x: (w / 2) * (1 - initK), y: (h / 2) * (1 - initK), k: initK };
     defaultXformRef.current = initXform;
-    setXform(initXform);
+    requestAnimationFrame(() => setXform(initXform));
 
     type FLink = d3Force.SimulationLinkDatum<SimNode> & { distance: number; strength: number };
 
@@ -138,30 +137,54 @@ export function AllianceGraph({
     });
   }
 
-  // ── Pan (pointer drag) ───────────────────────────────────────────────────────
+  // ── Pan + pinch (pointer events) ────────────────────────────────────────────
 
   function onPointerDown(e: React.PointerEvent<SVGSVGElement>) {
-    // Only pan on direct SVG background clicks, not node elements
     if ((e.target as Element).closest("g[data-node]")) return;
-    isPanningRef.current = true;
-    setIsPanning(true);
-    lastPosRef.current = { x: e.clientX, y: e.clientY };
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
+    if (activePointersRef.current.size === 1) setIsPanning(true);
   }
 
   function onPointerMove(e: React.PointerEvent<SVGSVGElement>) {
-    if (!isPanningRef.current) return;
-    const dx = e.clientX - lastPosRef.current.x;
-    const dy = e.clientY - lastPosRef.current.y;
-    lastPosRef.current = { x: e.clientX, y: e.clientY };
-    setXform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+    const pointers = activePointersRef.current;
+    if (!pointers.has(e.pointerId)) return;
+
+    if (pointers.size === 1) {
+      const prev = pointers.get(e.pointerId)!;
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      setXform((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
+    } else if (pointers.size === 2) {
+      const [idA, idB] = [...pointers.keys()];
+      const otherId = e.pointerId === idA ? idB : idA;
+      const other = pointers.get(otherId)!;
+      const prevCurr = pointers.get(e.pointerId)!;
+      const newCurr = { x: e.clientX, y: e.clientY };
+
+      const prevDist = Math.hypot(prevCurr.x - other.x, prevCurr.y - other.y);
+      const newDist = Math.hypot(newCurr.x - other.x, newCurr.y - other.y);
+
+      if (prevDist > 0) {
+        const factor = newDist / prevDist;
+        const rect = svgRef.current!.getBoundingClientRect();
+        const mx = (newCurr.x + other.x) / 2 - rect.left;
+        const my = (newCurr.y + other.y) / 2 - rect.top;
+        setXform((prev) => {
+          const newK = Math.max(0.2, Math.min(4, prev.k * factor));
+          const s = newK / prev.k;
+          return { x: mx - s * (mx - prev.x), y: my - s * (my - prev.y), k: newK };
+        });
+      }
+    }
+
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   }
 
   function stopPan(e: React.PointerEvent<SVGSVGElement>) {
-    if (!isPanningRef.current) return;
-    isPanningRef.current = false;
-    setIsPanning(false);
+    activePointersRef.current.delete(e.pointerId);
     (e.currentTarget as SVGSVGElement).releasePointerCapture(e.pointerId);
+    if (activePointersRef.current.size === 0) setIsPanning(false);
   }
 
   // ── Rendering helpers ────────────────────────────────────────────────────────
@@ -198,6 +221,7 @@ export function AllianceGraph({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={stopPan}
+        onPointerCancel={stopPan}
         onPointerLeave={stopPan}
         onMouseMove={(e) => {
           const rect = svgRef.current?.getBoundingClientRect();
@@ -279,10 +303,17 @@ export function AllianceGraph({
       {/* Zoom controls */}
       <div className="absolute bottom-3 right-3 flex items-center gap-1">
         <button
-          onClick={() => setXform((prev) => {
-            const factor = 1.2;
-            return { x: prev.x, y: prev.y, k: Math.max(0.2, prev.k / factor) };
-          })}
+          onClick={() => {
+            const rect = svgRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            const mx = rect.width / 2;
+            const my = rect.height / 2;
+            setXform((prev) => {
+              const newK = Math.max(0.2, prev.k / 1.2);
+              const s = newK / prev.k;
+              return { x: mx - s * (mx - prev.x), y: my - s * (my - prev.y), k: newK };
+            });
+          }}
           className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors text-base leading-none"
         >
           −
@@ -294,10 +325,17 @@ export function AllianceGraph({
           Reset
         </button>
         <button
-          onClick={() => setXform((prev) => {
-            const factor = 1.2;
-            return { x: prev.x, y: prev.y, k: Math.min(4, prev.k * factor) };
-          })}
+          onClick={() => {
+            const rect = svgRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            const mx = rect.width / 2;
+            const my = rect.height / 2;
+            setXform((prev) => {
+              const newK = Math.min(4, prev.k * 1.2);
+              const s = newK / prev.k;
+              return { x: mx - s * (mx - prev.x), y: my - s * (my - prev.y), k: newK };
+            });
+          }}
           className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors text-base leading-none"
         >
           +
