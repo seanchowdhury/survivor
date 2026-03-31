@@ -168,11 +168,6 @@ export function PollClient({ data, hasVoted, isClosed, nonce, jt }: Props) {
     return (
       <div className="flex flex-col gap-8">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-400">
-            {data.totalVoters > 0
-              ? `${data.totalVoters.toLocaleString()} vote${data.totalVoters === 1 ? "" : "s"} cast so far`
-              : "No votes yet"}
-          </p>
           {!isClosed && (
             <button
               onClick={() => setSubmitted(false)}
