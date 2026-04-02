@@ -47,6 +47,14 @@ export function SiteHeader() {
       <header className={cn(BAR_CLASSES, "hidden md:flex")}>
         <NavigationMenu>
           <NavigationMenuList>
+            <NavigationMenuItem>
+              <Link
+                href="/"
+                className="inline-flex h-9 items-center px-4 text-sm font-bold text-white"
+              >
+                🔥 Winners Edit
+              </Link>
+            </NavigationMenuItem>
             {navLinks.map(({ href, label, matchPrefix }) => {
               const active = pathname === href || pathname.startsWith(matchPrefix);
               return (
@@ -81,13 +89,14 @@ export function SiteHeader() {
         >
           <HugeiconsIcon icon={Menu01Icon} size={20} />
         </Button>
+        <span className="text-sm font-bold text-white">🔥 Winners Edit</span>
         <UserButton size="icon" />
       </header>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="bg-gray-950 border-gray-800 w-64">
           <SheetHeader className="mb-6">
-            <SheetTitle className="text-white text-left">🔥 Survivor Fantasy</SheetTitle>
+            <SheetTitle className="text-white text-left">🔥 Winners Edit</SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col gap-1">
             {navLinks.map(({ href, label, matchPrefix }) => {
