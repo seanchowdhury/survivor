@@ -7,6 +7,7 @@ import {
   castMembersTable,
   challengesTable,
   challengeWinnersTable,
+  challengeRewardRecipientsTable,
   confessionalCountTable,
   episodesTable,
   tribalCouncilsTable,
@@ -84,6 +85,7 @@ export function getConfessionalCounts(episodeId: number, episodeNumber: number) 
 export type ChallengeWinner = {
   castMemberName: string;
   placement: number;
+  gotReward: boolean;
 };
 
 export type ChallengeData = {
@@ -99,12 +101,22 @@ export type ChallengeData = {
 export function getChallenges(episodeId: number): Promise<ChallengeData[]> {
   return unstable_cache(
     async (): Promise<ChallengeData[]> => {
-  const rows = await db
-    .select()
-    .from(challengeWinnersTable)
-    .innerJoin(challengesTable, eq(challengesTable.id, challengeWinnersTable.challengeId))
-    .innerJoin(castMembersTable, eq(castMembersTable.id, challengeWinnersTable.castMemberId))
-    .where(eq(challengesTable.episodeId, episodeId));
+  const [rows, rewardRows] = await Promise.all([
+    db
+      .select()
+      .from(challengeWinnersTable)
+      .innerJoin(challengesTable, eq(challengesTable.id, challengeWinnersTable.challengeId))
+      .innerJoin(castMembersTable, eq(castMembersTable.id, challengeWinnersTable.castMemberId))
+      .where(eq(challengesTable.episodeId, episodeId)),
+    db
+      .select({ challengeId: challengeRewardRecipientsTable.challengeId, castMemberName: castMembersTable.name })
+      .from(challengeRewardRecipientsTable)
+      .innerJoin(challengesTable, eq(challengesTable.id, challengeRewardRecipientsTable.challengeId))
+      .innerJoin(castMembersTable, eq(castMembersTable.id, challengeRewardRecipientsTable.castMemberId))
+      .where(eq(challengesTable.episodeId, episodeId)),
+  ]);
+
+  const rewardSet = new Set(rewardRows.map((r) => `${r.challengeId}:${r.castMemberName}`));
 
   const challengeMap: Record<number, ChallengeData> = {};
   for (const row of rows) {
@@ -123,6 +135,7 @@ export function getChallenges(episodeId: number): Promise<ChallengeData[]> {
     challengeMap[cId].winners.push({
       castMemberName: row.cast_members_table.name,
       placement: row.challenge_winners_table.placement,
+      gotReward: rewardSet.has(`${cId}:${row.cast_members_table.name}`),
     });
   }
 

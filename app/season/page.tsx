@@ -70,11 +70,11 @@ export default async function SeasonPage({
 
         {activeTab === "reality" ? (
           <>
+            <AllianceNetwork data={allianceGraph} />
             <ConfessionalHeatmap data={heatmapData} />
             <VotesAgainst entries={votesAgainst.entries} hasMerge={votesAgainst.hasMerge} />
             <RightSideOfVote entries={rightSide} />
             <Contention entries={contention} />
-            <AllianceNetwork data={allianceGraph} />
             <ChallengeWins entries={challengeWins} />
             <IdolsAndAdvantages entries={idolsAndAdvantages} />
           </>

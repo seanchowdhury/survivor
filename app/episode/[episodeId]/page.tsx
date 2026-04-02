@@ -181,8 +181,15 @@ export default async function EpisodeShowPage({
                           <span className="text-sm text-gray-400">1st</span>
                           {c.tribes?.[0] && <TribeBadge tribe={c.tribes[0]} />}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {firstPlace.map((w) => w.castMemberName).join(", ")}
+                        <p className="text-xs mt-0.5">
+                          {firstPlace.map((w, i) => (
+                            <span key={w.castMemberName}>
+                              {i > 0 && <span className="text-gray-500">, </span>}
+                              <span className={w.gotReward ? "text-green-300" : "text-gray-500"}>
+                                {w.castMemberName}
+                              </span>
+                            </span>
+                          ))}
                         </p>
                       </div>
                     )}
@@ -192,8 +199,15 @@ export default async function EpisodeShowPage({
                           <span className="text-sm text-gray-400">2nd</span>
                           {c.tribes?.[1] && <TribeBadge tribe={c.tribes[1]} />}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {secondPlace.map((w) => w.castMemberName).join(", ")}
+                        <p className="text-xs mt-0.5">
+                          {secondPlace.map((w, i) => (
+                            <span key={w.castMemberName}>
+                              {i > 0 && <span className="text-gray-500">, </span>}
+                              <span className={w.gotReward ? "text-green-300" : "text-gray-500"}>
+                                {w.castMemberName}
+                              </span>
+                            </span>
+                          ))}
                         </p>
                       </div>
                     )}
