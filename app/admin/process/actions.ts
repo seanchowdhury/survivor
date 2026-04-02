@@ -38,7 +38,10 @@ import {
 import { takeUniqueOrThrow } from "@/db/helpers";
 import { redirect } from "next/navigation";
 import { getEpisodeContent } from "@/app/admin/lib/wiki";
-import { recalculateEpisodeScores, recalculateSeasonScores } from "@/app/admin/leaderboard/actions";
+import {
+  recalculateEpisodeScores,
+  recalculateSeasonScores,
+} from "@/app/admin/leaderboard/actions";
 
 async function getEpisodeByNumber(
   episodeNumber: number,
@@ -95,7 +98,10 @@ async function insertConfessionals(
     });
   });
 
-  await db.insert(confessionalsTable).values(confessionalsToInsert);
+  if (confessionalsToInsert.length) {
+    await db.insert(confessionalsTable).values(confessionalsToInsert);
+  }
+
   const countsToInsert: InsertConfessionalCount[] = Object.keys(
     confessionalsPerCastMember,
   ).map((castMemberId) => {
@@ -186,7 +192,9 @@ async function insertChallenges(
   const challengesToInsert: InsertChallenge[] = [];
   const TRIBE_NAMES = ["kalo", "cila", "vatu"];
   challenges.forEach((challenge) => {
-    const winningTribes = challenge.winners.filter((w) => TRIBE_NAMES.includes(w));
+    const winningTribes = challenge.winners.filter((w) =>
+      TRIBE_NAMES.includes(w),
+    );
     const individualChallenge = winningTribes.length === 0;
     challengesToInsert.push({
       episodeId,
@@ -447,7 +455,10 @@ async function insertEpisodeTribeSnapshot(
     .insert(castMemberEpisodeTribeTable)
     .values(rows)
     .onConflictDoUpdate({
-      target: [castMemberEpisodeTribeTable.castMemberId, castMemberEpisodeTribeTable.episodeId],
+      target: [
+        castMemberEpisodeTribeTable.castMemberId,
+        castMemberEpisodeTribeTable.episodeId,
+      ],
       set: { tribe: sql`excluded.tribe` },
     });
 }
@@ -473,7 +484,7 @@ export async function processEpisodeWiki(
   } catch (_) {
     // Episode not found in DB — continue to create it
   }
-  if (episodeByTitle) redirect("/admin/episode/" + episodeByTitle.id);
+  // if (episodeByTitle) redirect("/admin/episode/" + episodeByTitle.id);
 
   const {
     confessionals,
@@ -511,11 +522,16 @@ export async function processEpisodeWiki(
   try {
     await processConfessionals(confessionals, episodeRecord.id);
   } catch (_) {
+    console.log(_);
     return { error: "Error adding confessionals to database" };
   }
 
   try {
-    await insertEpisodeTribeSnapshot(confessionals, castMembers, episodeRecord.id);
+    await insertEpisodeTribeSnapshot(
+      confessionals,
+      castMembers,
+      episodeRecord.id,
+    );
   } catch (_) {
     return { error: "Error inserting tribe snapshot" };
   }

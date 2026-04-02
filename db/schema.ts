@@ -148,6 +148,7 @@ export const challengeWinnersTable = pgTable("challenge_winners_table", {
     .notNull()
     .references(() => castMembersTable.id),
   placement: integer("placement").notNull(),
+  gotReward: boolean("got_reward").notNull().default(true),
 });
 
 export type SelectChallengeWinner = typeof challengeWinnersTable.$inferSelect;

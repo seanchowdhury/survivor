@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   castMembersTable,
@@ -78,13 +78,14 @@ export async function updateEpisodeConfessionalCounts(
 }
 
 export async function getCastMembers(): Promise<SelectCastMember[]> {
-  return await db.select().from(castMembersTable);
+  return await db.select().from(castMembersTable).orderBy(asc(castMembersTable.name));
 }
 
 export type Winner = {
   castMemberId: number;
   castMemberName: string;
   placement: number;
+  gotReward: boolean;
 };
 
 export type Challenge = {
@@ -117,6 +118,7 @@ export async function getEpisodeChallengeWinners(
       castMemberId: winner.challenge_winners_table.castMemberId,
       castMemberName: winner.cast_members_table.name,
       placement: winner.challenge_winners_table.placement,
+      gotReward: winner.challenge_winners_table.gotReward,
     };
     const challenge = challengeRecord[winner.challenges_table.id];
     if (challenge) {
@@ -167,6 +169,10 @@ export async function updateChallenges(
       );
     }
 
+    const rewardRecipientIds = changes.rewardRecipients
+      ? new Set(changes.rewardRecipients.map((name) => nameToId[name]).filter(Boolean))
+      : null;
+
     for (const [placement, names] of [
       [1, changes.firstPlace],
       [2, changes.secondPlace],
@@ -192,6 +198,8 @@ export async function updateChallenges(
                 challengeId,
                 castMemberId,
                 placement,
+                // if rewardRecipients was explicitly set, use it; otherwise default true
+                gotReward: rewardRecipientIds ? rewardRecipientIds.has(castMemberId) : true,
               })),
             );
           }

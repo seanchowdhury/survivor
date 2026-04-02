@@ -58,13 +58,13 @@ export default function EpisodeConfessionalCount({
     useState<PendingConfessionalChanges>({});
 
   const [tableData, setTableData] = useState<Confessionals[]>(
-    Object.keys(confessionalsByPlayer).map((id) => {
-      return {
-        id: id,
+    Object.keys(confessionalsByPlayer)
+      .map((id) => ({
+        id,
         name: confessionalsByPlayer[id].castMemberName,
         confessionalCount: confessionalsByPlayer[id].confessionalCount,
-      };
-    }),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
   );
 
   const table = useReactTable({

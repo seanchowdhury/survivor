@@ -28,6 +28,7 @@ export type PendingChallengeChanges = Record<
     individualChallenge?: boolean;
     firstPlace?: string[];
     secondPlace?: string[];
+    rewardRecipients?: string[];
   }
 >;
 
@@ -39,6 +40,7 @@ type FormattedChallenge = {
   individualChallenge: boolean;
   firstPlace: Winner[];
   secondPlace: Winner[];
+  rewardRecipients: Winner[];
 };
 
 function formatChallenges(
@@ -48,11 +50,15 @@ function formatChallenges(
     ([challengeId, challenge]) => {
       const firstPlace: Winner[] = [];
       const secondPlace: Winner[] = [];
+      const rewardRecipients: Winner[] = [];
       challenge.winners.forEach((winner) => {
         if (winner.placement == 1) {
           firstPlace.push(winner);
         } else {
           secondPlace.push(winner);
+        }
+        if (winner.gotReward) {
+          rewardRecipients.push(winner);
         }
       });
       return {
@@ -63,6 +69,7 @@ function formatChallenges(
         individualChallenge: challenge.individualChallenge,
         firstPlace,
         secondPlace,
+        rewardRecipients,
       };
     },
   );
@@ -168,6 +175,20 @@ export default function EpisodeChallengeWinners({
                   })
                 }
               />
+              {(pendingChanges[challenge.challengeId]?.isReward ?? challenge.isReward) && (
+                <div>
+                  <p className="text-sm text-muted-foreground mt-2">Reward recipients</p>
+                  <RewardRecipientsComboBox
+                    challenge={challenge}
+                    castMemberNames={castMemberNames}
+                    onValueChange={(names) =>
+                      updateChallenge(challenge.challengeId, {
+                        rewardRecipients: names,
+                      })
+                    }
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -179,6 +200,53 @@ export default function EpisodeChallengeWinners({
         Save Changes
       </Button>
     </div>
+  );
+}
+
+function RewardRecipientsComboBox({
+  challenge,
+  castMemberNames,
+  onValueChange,
+}: {
+  challenge: FormattedChallenge;
+  castMemberNames: string[];
+  onValueChange: (names: string[]) => void;
+}) {
+  const anchor = useComboboxAnchor();
+  const defaultValue = challenge.rewardRecipients.map((w) => w.castMemberName);
+
+  return (
+    <Combobox
+      multiple
+      autoHighlight
+      defaultValue={defaultValue}
+      items={castMemberNames}
+      itemToStringValue={(name) => name}
+      onValueChange={onValueChange}
+    >
+      <ComboboxChips ref={anchor} className="w-full max-w-xs">
+        <ComboboxValue>
+          {(values) => (
+            <React.Fragment>
+              {values.map((name: string) => (
+                <ComboboxChip key={name}>{name}</ComboboxChip>
+              ))}
+              <ComboboxChipsInput />
+            </React.Fragment>
+          )}
+        </ComboboxValue>
+      </ComboboxChips>
+      <ComboboxContent>
+        <ComboboxEmpty>No items found.</ComboboxEmpty>
+        <ComboboxList>
+          {(name: string) => (
+            <ComboboxItem key={name} value={name}>
+              {name}
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 }
 

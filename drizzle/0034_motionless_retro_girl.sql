@@ -1,0 +1,1 @@
+ALTER TABLE "challenge_winners_table" ADD COLUMN "got_reward" boolean DEFAULT true NOT NULL;

@@ -157,7 +157,7 @@ export async function recalculateEpisodeScores(episodeId: number) {
       castMemberId: challengeWinnersTable.castMemberId,
       placement: challengeWinnersTable.placement,
       isImmunity: challengesTable.isImmunity,
-      isReward: challengesTable.isReward,
+      gotReward: challengeWinnersTable.gotReward,
       individualChallenge: challengesTable.individualChallenge,
     })
     .from(challengeWinnersTable)
@@ -185,7 +185,7 @@ export async function recalculateEpisodeScores(episodeId: number) {
         ruleMap["won_tribal_immunity"] ?? 3,
       );
     }
-    if (w.isReward) {
+    if (w.gotReward) {
       accumulate(
         pts,
         w.castMemberId,
