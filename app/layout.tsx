@@ -41,7 +41,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         <NeonAuthUIProvider
           // @ts-expect-error: Typing issue from neon
@@ -49,21 +49,23 @@ export default function RootLayout({
           redirectTo="/account/settings"
           emailOTP
         >
-          <SiteHeader />
-          <div className="pt-14 flex-1">
-            {children}
+          <div className="flex min-h-screen flex-col">
+            <SiteHeader />
+            <div className="pt-14 flex-1">
+              {children}
+            </div>
+            <footer className="text-center py-4 text-xs text-gray-500 bg-gray-800">
+              Episode data sourced from the{" "}
+              <a
+                href="https://survivor.fandom.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-gray-400 transition-colors"
+              >
+                Survivor Wiki on Fandom
+              </a>
+            </footer>
           </div>
-          <footer className="text-center py-4 text-xs text-gray-500 bg-gray-800">
-            Episode data sourced from the{" "}
-            <a
-              href="https://survivor.fandom.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-gray-400 transition-colors"
-            >
-              Survivor Wiki on Fandom
-            </a>
-          </footer>
         </NeonAuthUIProvider>
         <Analytics />
         <SpeedInsights />
