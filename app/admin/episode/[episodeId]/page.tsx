@@ -2,7 +2,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getEpisodeChallengeWinners,
   getEpisodeConfessionalCounts,
-  getEpisodeDetails,
   getCastMembers,
   getEpisodeVoteData,
   getIdolsAndAdvantages,
