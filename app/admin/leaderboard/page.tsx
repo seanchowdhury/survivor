@@ -1,4 +1,5 @@
-import { getLeaderboard, seedScoringRules } from "./actions";
+import { getLeaderboard, seedScoringRules, recalculateAllEpisodes } from "./actions";
+import { RecalculateButton } from "./recalculate-button";
 
 export default async function LeaderboardPage() {
   // Ensure scoring rules are seeded
@@ -8,7 +9,10 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Fantasy Leaderboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Fantasy Leaderboard</h1>
+        <RecalculateButton action={recalculateAllEpisodes} />
+      </div>
 
       {entries.length === 0 ? (
         <p className="text-muted-foreground">

@@ -133,6 +133,7 @@ export const challengesTable = pgTable("challenges_table", {
     .references(() => episodesTable.id),
   name: text("name").notNull(),
   isReward: boolean("is_reward").notNull(),
+  isFoodReward: boolean("is_food_reward").notNull().default(false),
   isImmunity: boolean("is_immunity").notNull(),
   individualChallenge: boolean("individual_challenge").notNull(),
   tribe: text("tribe").array(),

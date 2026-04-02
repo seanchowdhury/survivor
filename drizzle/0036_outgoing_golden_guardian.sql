@@ -1,0 +1,2 @@
+ALTER TABLE "challenges_table" ADD COLUMN "is_food_reward" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "tribal_votes_table" ADD COLUMN "shot_in_the_dark" boolean DEFAULT false NOT NULL;

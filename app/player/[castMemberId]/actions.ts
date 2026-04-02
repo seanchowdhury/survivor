@@ -10,6 +10,7 @@ import {
   tribalVotesTable,
   tribalCouncilsTable,
   challengeWinnersTable,
+  challengeRewardRecipientsTable,
   challengesTable,
   idolsTable,
   advantagesTable,
@@ -299,12 +300,14 @@ export type FantasyPoint = {
   episodeNumber: number;
   points: number;
   avg: number;
+  wonImmunity: boolean;
+  wonFoodReward: boolean;
 };
 
 export const getPlayerFantasyPoints = (castMemberId: number) =>
   unstable_cache(
     async (): Promise<FantasyPoint[]> => {
-      const [playerRows, allRows, episodes] = await Promise.all([
+      const [playerRows, allRows, episodes, immunityWins, foodRewardWins] = await Promise.all([
         // This player's total points per episode
         db
           .select({
@@ -340,7 +343,35 @@ export const getPlayerFantasyPoints = (castMemberId: number) =>
         db
           .select({ id: episodesTable.id, episodeNumber: episodesTable.episodeNumber })
           .from(episodesTable),
+
+        // Episodes where this player won immunity (placement = 1, isImmunity)
+        db
+          .select({ episodeId: challengesTable.episodeId })
+          .from(challengeWinnersTable)
+          .innerJoin(challengesTable, eq(challengesTable.id, challengeWinnersTable.challengeId))
+          .where(
+            and(
+              eq(challengeWinnersTable.castMemberId, castMemberId),
+              eq(challengeWinnersTable.placement, 1),
+              eq(challengesTable.isImmunity, true),
+            ),
+          ),
+
+        // Episodes where this player won a food reward
+        db
+          .select({ episodeId: challengesTable.episodeId })
+          .from(challengeRewardRecipientsTable)
+          .innerJoin(challengesTable, eq(challengesTable.id, challengeRewardRecipientsTable.challengeId))
+          .where(
+            and(
+              eq(challengeRewardRecipientsTable.castMemberId, castMemberId),
+              eq(challengesTable.isFoodReward, true),
+            ),
+          ),
       ]);
+
+      const immunityEpisodeIds = new Set(immunityWins.map((r) => r.episodeId));
+      const foodRewardEpisodeIds = new Set(foodRewardWins.map((r) => r.episodeId));
 
       if (playerRows.length === 0) return [];
 
@@ -364,6 +395,8 @@ export const getPlayerFantasyPoints = (castMemberId: number) =>
           episodeNumber: epNumMap.get(r.episodeId) ?? 0,
           points: Number(r.points),
           avg: avgMap.get(r.episodeId) ?? 0,
+          wonImmunity: immunityEpisodeIds.has(r.episodeId),
+          wonFoodReward: foodRewardEpisodeIds.has(r.episodeId),
         }))
         .sort((a, b) => a.episodeNumber - b.episodeNumber);
     },

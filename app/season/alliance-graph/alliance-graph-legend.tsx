@@ -44,7 +44,7 @@ export function AllianceGraphLegend({
         {/* Min co-votes filter */}
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <span>Min co-votes:</span>
-          {[1, 2, 3].map((n) => (
+          {[1, 2, 3, 4].map((n) => (
             <button
               key={n}
               onClick={() => setMinCoVotes(n)}

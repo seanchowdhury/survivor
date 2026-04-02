@@ -93,6 +93,7 @@ export type Challenge = {
   winners: Winner[];
   rewardRecipients: { castMemberId: number; castMemberName: string }[];
   isReward: boolean;
+  isFoodReward: boolean;
   isImmunity: boolean;
   individualChallenge: boolean;
 };
@@ -145,6 +146,7 @@ export async function getEpisodeChallengeWinners(
       challengeRecord[winner.challenge_winners_table.challengeId] = {
         challengeName: winner.challenges_table.name,
         isReward: winner.challenges_table.isReward,
+        isFoodReward: winner.challenges_table.isFoodReward,
         isImmunity: winner.challenges_table.isImmunity,
         individualChallenge: winner.challenges_table.individualChallenge,
         winners: [formattedWinner],
@@ -177,6 +179,7 @@ export async function updateChallenges(
 
     if (
       changes.isReward !== undefined ||
+      changes.isFoodReward !== undefined ||
       changes.isImmunity !== undefined ||
       changes.individualChallenge !== undefined
     ) {
@@ -186,6 +189,9 @@ export async function updateChallenges(
           .set({
             ...(changes.isReward !== undefined && {
               isReward: changes.isReward,
+            }),
+            ...(changes.isFoodReward !== undefined && {
+              isFoodReward: changes.isFoodReward,
             }),
             ...(changes.isImmunity !== undefined && {
               isImmunity: changes.isImmunity,

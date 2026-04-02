@@ -253,6 +253,13 @@
       "when": 1775139172860,
       "tag": "0035_handy_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1775145104512,
+      "tag": "0036_outgoing_golden_guardian",
+      "breakpoints": true
     }
   ]
 }

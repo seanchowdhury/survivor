@@ -168,7 +168,11 @@ export async function recalculateEpisodeScores(episodeId: number) {
       )
       .where(eq(challengesTable.episodeId, episodeId)),
     db
-      .select({ castMemberId: challengeRewardRecipientsTable.castMemberId })
+      .select({
+        castMemberId: challengeRewardRecipientsTable.castMemberId,
+        challengeId: challengeRewardRecipientsTable.challengeId,
+        individualChallenge: challengesTable.individualChallenge,
+      })
       .from(challengeRewardRecipientsTable)
       .innerJoin(
         challengesTable,
@@ -177,7 +181,13 @@ export async function recalculateEpisodeScores(episodeId: number) {
       .where(eq(challengesTable.episodeId, episodeId)),
   ]);
 
-  const rewardRecipientSet = new Set(rewardRecipientRows.map((r) => r.castMemberId));
+  // For tribal challenges, only first-place winners who are reward recipients score
+  // For individual challenges, anyone in reward recipients scores
+  const tribalFirstPlaceWinners = new Set(
+    challengeWinners
+      .filter((w) => w.placement === 1 && !w.individualChallenge)
+      .map((w) => w.castMemberId),
+  );
 
   for (const w of challengeWinners) {
     if (w.placement !== 1) continue;
@@ -199,13 +209,11 @@ export async function recalculateEpisodeScores(episodeId: number) {
     }
   }
 
-  for (const castMemberId of rewardRecipientSet) {
-    accumulate(
-      pts,
-      castMemberId,
-      "won_reward",
-      ruleMap["won_reward"] ?? 3,
-    );
+  for (const r of rewardRecipientRows) {
+    const eligible = r.individualChallenge || tribalFirstPlaceWinners.has(r.castMemberId);
+    if (eligible) {
+      accumulate(pts, r.castMemberId, "won_reward", ruleMap["won_reward"] ?? 3);
+    }
   }
 
   // Tribal council events
@@ -592,6 +600,16 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     totalPoints: Number(t.totalPoints),
     episodeBreakdown: breakdownByParticipant[t.participantId] ?? [],
   }));
+}
+
+export async function recalculateAllEpisodes() {
+  const episodes = await db
+    .select({ id: episodesTable.id })
+    .from(episodesTable)
+    .orderBy(episodesTable.episodeNumber);
+  for (const ep of episodes) {
+    await recalculateEpisodeScores(ep.id);
+  }
 }
 
 export async function seedScoringRules() {

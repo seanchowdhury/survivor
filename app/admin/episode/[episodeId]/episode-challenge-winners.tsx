@@ -24,6 +24,7 @@ export type PendingChallengeChanges = Record<
   string,
   {
     isReward?: boolean;
+    isFoodReward?: boolean;
     isImmunity?: boolean;
     individualChallenge?: boolean;
     firstPlace?: string[];
@@ -36,6 +37,7 @@ type FormattedChallenge = {
   challengeId: string;
   challengeName: string;
   isReward: boolean;
+  isFoodReward: boolean;
   isImmunity: boolean;
   individualChallenge: boolean;
   firstPlace: Winner[];
@@ -62,6 +64,7 @@ function formatChallenges(
         challengeName: challenge.challengeName,
         isImmunity: challenge.isImmunity,
         isReward: challenge.isReward,
+        isFoodReward: challenge.isFoodReward,
         individualChallenge: challenge.individualChallenge,
         firstPlace,
         secondPlace,
@@ -128,6 +131,19 @@ export default function EpisodeChallengeWinners({
                   <HugeiconsIcon icon={Tick03Icon} className="group-data-[state=on]/toggle:fill-foreground" />
                   Reward
                 </Toggle>
+                {(pendingChanges[challenge.challengeId]?.isReward ?? challenge.isReward) && (
+                  <Toggle
+                    variant="outline"
+                    size="sm"
+                    defaultPressed={challenge.isFoodReward}
+                    onPressedChange={(pressed) =>
+                      updateChallenge(challenge.challengeId, { isFoodReward: pressed })
+                    }
+                  >
+                    <HugeiconsIcon icon={Tick03Icon} className="group-data-[state=on]/toggle:fill-foreground" />
+                    Food Reward
+                  </Toggle>
+                )}
                 <Toggle
                   variant="outline"
                   size="sm"

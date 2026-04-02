@@ -18,7 +18,7 @@ import { AllianceGraphLegend } from "./alliance-graph/alliance-graph-legend";
 
 function AllianceGraphModal({ data }: { data: AllianceGraphData }) {
   const [phase, setPhase] = useState<PhaseFilter>("all");
-  const [minCoVotes, setMinCoVotes] = useState(1);
+  const [minCoVotes, setMinCoVotes] = useState(3);
 
   const tribeColorMap = useMemo(() => buildTribeColorMap(data.nodes), [data.nodes]);
   const activeNodeIds = useMemo(() => getActiveNodeIds(data.nodes), [data.nodes]);
