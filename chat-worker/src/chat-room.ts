@@ -15,8 +15,10 @@ export class ChatRoom {
     const username = req.headers.get("X-Chat-Username") ?? "Anonymous";
     const { 0: client, 1: server } = new WebSocketPair();
 
-    // Tag the socket with the verified username
     this.ctx.acceptWebSocket(server, [username]);
+
+    // Broadcast updated presence after new connection
+    this.broadcastPresence();
 
     return new Response(null, {
       status: 101,
@@ -29,6 +31,14 @@ export class ChatRoom {
     const tags = this.ctx.getTags(ws);
     const username = tags[0] ?? "Anonymous";
 
+    if (data.type === "typing") {
+      const msg = JSON.stringify({ type: "typing", username });
+      for (const conn of this.ctx.getWebSockets()) {
+        if (conn !== ws) conn.send(msg);
+      }
+      return;
+    }
+
     const broadcast = JSON.stringify({
       type: "message",
       text: data.text,
@@ -38,6 +48,24 @@ export class ChatRoom {
 
     for (const conn of this.ctx.getWebSockets()) {
       conn.send(broadcast);
+    }
+  }
+
+  webSocketClose() {
+    this.broadcastPresence();
+  }
+
+  webSocketError() {
+    this.broadcastPresence();
+  }
+
+  private broadcastPresence() {
+    const sockets = this.ctx.getWebSockets();
+    const users = [...new Set(sockets.map((s) => this.ctx.getTags(s)[0]))];
+    const msg = JSON.stringify({ type: "presence", users });
+
+    for (const conn of sockets) {
+      conn.send(msg);
     }
   }
 }
