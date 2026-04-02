@@ -15,6 +15,12 @@ import { getChatToken } from "./actions";
 import { use, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function isChatOpen(): boolean {
   const now = new Date();
@@ -139,34 +145,33 @@ export default function LeagueChat({
   }
 
   return (
-    <div className="flex justify-center p-4">
-      <Card className="flex flex-col h-150 w-full max-w-2xl">
-        <CardHeader>
+    <div className="flex justify-center md:p-4">
+      <Card className="flex flex-col h-[calc(100dvh-3.5rem)] w-full max-w-2xl rounded-none md:rounded-lg">
+        <CardHeader className="px-3 py-2 md:px-6 md:py-4">
           <div className="flex items-center justify-between">
             <CardTitle>League Chat</CardTitle>
             {onlineUsers.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-xs text-muted-foreground">
-                  {onlineUsers.length} online
-                </span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="text-xs text-muted-foreground">
+                        {onlineUsers.length} online
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="flex flex-col gap-1">
+                      {onlineUsers.map((name) => (
+                        <span key={name} className="text-xs">{name}</span>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
-          {onlineUsers.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap mt-1">
-              {onlineUsers.map((name) => (
-                <div key={name} className="flex items-center gap-1">
-                  <Avatar className="h-5 w-5">
-                    <AvatarFallback className="text-[10px]">
-                      {name[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground">{name}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </CardHeader>
         <CardContent className="flex-1 overflow-hidden">
           <div className="flex h-full flex-col-reverse gap-3 overflow-y-auto pr-4">
@@ -200,7 +205,7 @@ export default function LeagueChat({
             })}
           </div>
         </CardContent>
-        <CardFooter className="flex-col items-start gap-1">
+        <CardFooter className="flex-col items-start gap-1 px-3 py-2 md:px-6 md:py-4">
           {typingUsers.length > 0 && (
             <p className="text-xs text-muted-foreground italic">
               {typingUsers.length === 1
