@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { authClient } from "@/lib/auth/client";
-import { getChatToken } from "./actions";
+import { getChatToken, getNextEpisodeNumber } from "./actions";
 import { use, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
@@ -54,9 +54,14 @@ export default function LeagueChat({
   const [open, setOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [connecting, setConnecting] = useState<boolean>(true);
+  const [nextEpisode, setNextEpisode] = useState<number | null>(null);
 
   const { data: session } = authClient.useSession();
   const username = session?.user.name;
+
+  useEffect(() => {
+    getNextEpisodeNumber().then(setNextEpisode);
+  }, []);
 
   // useEffect(() => {
   //   const id = setInterval(() => setOpen(isChatOpen()), 10000);
@@ -149,7 +154,7 @@ export default function LeagueChat({
       <Card className="flex flex-col h-[calc(100dvh-3.5rem)] w-full max-w-2xl rounded-none md:rounded-lg">
         <CardHeader className="px-3 py-2 md:px-6 md:py-4">
           <div className="flex items-center justify-between">
-            <CardTitle>League Chat</CardTitle>
+            <CardTitle>League Chat{nextEpisode ? ` — Episode ${nextEpisode}` : ""}</CardTitle>
             {onlineUsers.length > 0 && (
               <TooltipProvider>
                 <Tooltip>

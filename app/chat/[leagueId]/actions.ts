@@ -1,6 +1,9 @@
 "use server";
 
 import { auth } from "@/lib/auth/server";
+import { db } from "@/db";
+import { episodesTable } from "@/db/schema";
+import { desc } from "drizzle-orm";
 
 export async function getChatToken(): Promise<string | null> {
   const { data: session } = await auth.getSession();
@@ -31,4 +34,14 @@ export async function getChatToken(): Promise<string | null> {
   const sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
   return `${data}.${sig}`;
+}
+
+export async function getNextEpisodeNumber(): Promise<number> {
+  const [latest] = await db
+    .select({ episodeNumber: episodesTable.episodeNumber })
+    .from(episodesTable)
+    .orderBy(desc(episodesTable.episodeNumber))
+    .limit(1);
+
+  return (latest?.episodeNumber ?? 0) + 1;
 }
