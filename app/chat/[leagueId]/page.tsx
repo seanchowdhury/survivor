@@ -59,12 +59,11 @@ export default function LeagueChat({
 
     getChatToken().then((token) => {
       if (!token) return;
-      console.log(process.env.NEXT_PUBLIC_CHAT_WS_URL);
+      
       const socket = new WebSocket(
         `${process.env.NEXT_PUBLIC_CHAT_WS_URL}/league/${leagueId}?token=${encodeURIComponent(token)}`,
       );
-      socket.onopen = () => console.log("ws opened");
-      socket.onclose = () => console.log("ws closed");
+
       socket.addEventListener("message", (event) =>
         setMessages((prev) => {
           const message: Message = JSON.parse(event.data);
@@ -115,41 +114,38 @@ export default function LeagueChat({
           <CardTitle>League Chat</CardTitle>
         </CardHeader>
         <CardContent className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full pr-4">
-            <div className="flex flex-col gap-3">
-              {messages.map((message, idx) => {
-                const isMe = message.username === username;
-                return (
+          <div className="flex h-full flex-col-reverse gap-3 overflow-y-auto pr-4">
+            {[...messages].reverse().map((message, idx) => {
+              const isMe = message.username === username;
+              return (
+                <div
+                  key={idx}
+                  className={cn("flex gap-2", isMe && "flex-row-reverse")}
+                >
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="text-xs">
+                      {message.username?.[0]?.toUpperCase() ?? "?"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div
-                    key={idx}
-                    className={cn("flex gap-2", isMe && "flex-row-reverse")}
+                    className={cn(
+                      "rounded-lg px-3 py-2 max-w-[70%] text-sm",
+                      isMe
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted",
+                    )}
                   >
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="text-xs">
-                        {message.username?.[0]?.toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div
-                      className={cn(
-                        "rounded-lg px-3 py-2 max-w-[70%] text-sm",
-                        isMe
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted",
-                      )}
-                    >
-                      {!isMe && (
-                        <p className="font-medium text-xs mb-1 opacity-70">
-                          {message.username}
-                        </p>
-                      )}
-                      {message.text}
-                    </div>
+                    {!isMe && (
+                      <p className="font-medium text-xs mb-1 opacity-70">
+                        {message.username}
+                      </p>
+                    )}
+                    {message.text}
                   </div>
-                );
-              })}
-              <div ref={scrollRef} />
-            </div>
-          </ScrollArea>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
         <CardFooter>
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
@@ -157,6 +153,7 @@ export default function LeagueChat({
               placeholder="Say something..."
               name="message"
               autoComplete="off"
+              enterKeyHint="send"
             />
             <Button type="submit">Send</Button>
           </form>
