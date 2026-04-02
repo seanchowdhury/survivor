@@ -148,11 +148,26 @@ export const challengeWinnersTable = pgTable("challenge_winners_table", {
     .notNull()
     .references(() => castMembersTable.id),
   placement: integer("placement").notNull(),
-  gotReward: boolean("got_reward").notNull().default(true),
 });
 
 export type SelectChallengeWinner = typeof challengeWinnersTable.$inferSelect;
 export type InsertChallengeWinner = typeof challengeWinnersTable.$inferInsert;
+
+export const challengeRewardRecipientsTable = pgTable(
+  "challenge_reward_recipients_table",
+  {
+    challengeId: integer("challenge_id")
+      .notNull()
+      .references(() => challengesTable.id, { onDelete: "cascade" }),
+    castMemberId: integer("cast_member_id")
+      .notNull()
+      .references(() => castMembersTable.id, { onDelete: "cascade" }),
+  },
+  (t) => [unique().on(t.challengeId, t.castMemberId)],
+);
+
+export type SelectChallengeRewardRecipient = typeof challengeRewardRecipientsTable.$inferSelect;
+export type InsertChallengeRewardRecipient = typeof challengeRewardRecipientsTable.$inferInsert;
 
 export const idolsTable = pgTable("idols_table", {
   id: serial("id").primaryKey(),

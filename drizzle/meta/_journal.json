@@ -246,6 +246,13 @@
       "when": 1775135836759,
       "tag": "0034_motionless_retro_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1775139172860,
+      "tag": "0035_handy_captain_britain",
+      "breakpoints": true
     }
   ]
 }

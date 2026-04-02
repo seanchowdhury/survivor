@@ -7,6 +7,7 @@ import {
   castMembersTable,
   challengesTable,
   challengeWinnersTable,
+  challengeRewardRecipientsTable,
   confessionalCountTable,
   episodesTable,
   tribalCouncilsTable,
@@ -85,12 +86,12 @@ export type Winner = {
   castMemberId: number;
   castMemberName: string;
   placement: number;
-  gotReward: boolean;
 };
 
 export type Challenge = {
   challengeName: string;
   winners: Winner[];
+  rewardRecipients: { castMemberId: number; castMemberName: string }[];
   isReward: boolean;
   isImmunity: boolean;
   individualChallenge: boolean;
@@ -99,18 +100,36 @@ export type Challenge = {
 export async function getEpisodeChallengeWinners(
   episodeId: number,
 ): Promise<Record<number, Challenge>> {
-  const challengeWinners = await db
-    .select()
-    .from(challengeWinnersTable)
-    .innerJoin(
-      challengesTable,
-      eq(challengesTable.id, challengeWinnersTable.challengeId),
-    )
-    .innerJoin(
-      castMembersTable,
-      eq(castMembersTable.id, challengeWinnersTable.castMemberId),
-    )
-    .where(eq(challengesTable.episodeId, episodeId));
+  const [challengeWinners, rewardRecipients] = await Promise.all([
+    db
+      .select()
+      .from(challengeWinnersTable)
+      .innerJoin(
+        challengesTable,
+        eq(challengesTable.id, challengeWinnersTable.challengeId),
+      )
+      .innerJoin(
+        castMembersTable,
+        eq(castMembersTable.id, challengeWinnersTable.castMemberId),
+      )
+      .where(eq(challengesTable.episodeId, episodeId)),
+    db
+      .select({
+        challengeId: challengeRewardRecipientsTable.challengeId,
+        castMemberId: challengeRewardRecipientsTable.castMemberId,
+        castMemberName: castMembersTable.name,
+      })
+      .from(challengeRewardRecipientsTable)
+      .innerJoin(
+        challengesTable,
+        eq(challengesTable.id, challengeRewardRecipientsTable.challengeId),
+      )
+      .innerJoin(
+        castMembersTable,
+        eq(castMembersTable.id, challengeRewardRecipientsTable.castMemberId),
+      )
+      .where(eq(challengesTable.episodeId, episodeId)),
+  ]);
 
   const challengeRecord: Record<number, Challenge> = {};
   challengeWinners.forEach((winner) => {
@@ -118,7 +137,6 @@ export async function getEpisodeChallengeWinners(
       castMemberId: winner.challenge_winners_table.castMemberId,
       castMemberName: winner.cast_members_table.name,
       placement: winner.challenge_winners_table.placement,
-      gotReward: winner.challenge_winners_table.gotReward,
     };
     const challenge = challengeRecord[winner.challenges_table.id];
     if (challenge) {
@@ -130,9 +148,20 @@ export async function getEpisodeChallengeWinners(
         isImmunity: winner.challenges_table.isImmunity,
         individualChallenge: winner.challenges_table.individualChallenge,
         winners: [formattedWinner],
+        rewardRecipients: [],
       };
     }
   });
+
+  rewardRecipients.forEach((r) => {
+    if (challengeRecord[r.challengeId]) {
+      challengeRecord[r.challengeId].rewardRecipients.push({
+        castMemberId: r.castMemberId,
+        castMemberName: r.castMemberName,
+      });
+    }
+  });
+
   return challengeRecord;
 }
 
@@ -169,10 +198,6 @@ export async function updateChallenges(
       );
     }
 
-    const rewardRecipientIds = changes.rewardRecipients
-      ? new Set(changes.rewardRecipients.map((name) => nameToId[name]).filter(Boolean))
-      : null;
-
     for (const [placement, names] of [
       [1, changes.firstPlace],
       [2, changes.secondPlace],
@@ -198,9 +223,27 @@ export async function updateChallenges(
                 challengeId,
                 castMemberId,
                 placement,
-                // if rewardRecipients was explicitly set, use it; otherwise default true
-                gotReward: rewardRecipientIds ? rewardRecipientIds.has(castMemberId) : true,
               })),
+            );
+          }
+        })(),
+      );
+    }
+
+    if (changes.rewardRecipients !== undefined) {
+      const recipientIds = changes.rewardRecipients
+        .map((name) => nameToId[name])
+        .filter(Boolean);
+
+      ops.push(
+        (async () => {
+          await db
+            .delete(challengeRewardRecipientsTable)
+            .where(eq(challengeRewardRecipientsTable.challengeId, challengeId));
+
+          if (recipientIds.length > 0) {
+            await db.insert(challengeRewardRecipientsTable).values(
+              recipientIds.map((castMemberId) => ({ challengeId, castMemberId })),
             );
           }
         })(),

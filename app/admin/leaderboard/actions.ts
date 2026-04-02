@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag, unstable_cache } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { db } from "@/db";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -9,6 +9,7 @@ import {
   castMembersTable,
   challengesTable,
   challengeWinnersTable,
+  challengeRewardRecipientsTable,
   confessionalCountTable,
   episodesTable,
   idolsTable,
@@ -152,20 +153,31 @@ export async function recalculateEpisodeScores(episodeId: number) {
   }
 
   // Challenge winners
-  const challengeWinners = await db
-    .select({
-      castMemberId: challengeWinnersTable.castMemberId,
-      placement: challengeWinnersTable.placement,
-      isImmunity: challengesTable.isImmunity,
-      gotReward: challengeWinnersTable.gotReward,
-      individualChallenge: challengesTable.individualChallenge,
-    })
-    .from(challengeWinnersTable)
-    .innerJoin(
-      challengesTable,
-      eq(challengesTable.id, challengeWinnersTable.challengeId),
-    )
-    .where(eq(challengesTable.episodeId, episodeId));
+  const [challengeWinners, rewardRecipientRows] = await Promise.all([
+    db
+      .select({
+        castMemberId: challengeWinnersTable.castMemberId,
+        placement: challengeWinnersTable.placement,
+        isImmunity: challengesTable.isImmunity,
+        individualChallenge: challengesTable.individualChallenge,
+      })
+      .from(challengeWinnersTable)
+      .innerJoin(
+        challengesTable,
+        eq(challengesTable.id, challengeWinnersTable.challengeId),
+      )
+      .where(eq(challengesTable.episodeId, episodeId)),
+    db
+      .select({ castMemberId: challengeRewardRecipientsTable.castMemberId })
+      .from(challengeRewardRecipientsTable)
+      .innerJoin(
+        challengesTable,
+        eq(challengesTable.id, challengeRewardRecipientsTable.challengeId),
+      )
+      .where(eq(challengesTable.episodeId, episodeId)),
+  ]);
+
+  const rewardRecipientSet = new Set(rewardRecipientRows.map((r) => r.castMemberId));
 
   for (const w of challengeWinners) {
     if (w.placement !== 1) continue;
@@ -185,14 +197,15 @@ export async function recalculateEpisodeScores(episodeId: number) {
         ruleMap["won_tribal_immunity"] ?? 3,
       );
     }
-    if (w.gotReward) {
-      accumulate(
-        pts,
-        w.castMemberId,
-        "won_reward",
-        ruleMap["won_reward"] ?? 3,
-      );
-    }
+  }
+
+  for (const castMemberId of rewardRecipientSet) {
+    accumulate(
+      pts,
+      castMemberId,
+      "won_reward",
+      ruleMap["won_reward"] ?? 3,
+    );
   }
 
   // Tribal council events
@@ -500,8 +513,7 @@ export type LeaderboardEntry = {
   }[];
 };
 
-export const getLeaderboard = unstable_cache(
-  async (): Promise<LeaderboardEntry[]> => {
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   // Total points per participant
   const totals = await db
     .select({
@@ -580,10 +592,7 @@ export const getLeaderboard = unstable_cache(
     totalPoints: Number(t.totalPoints),
     episodeBreakdown: breakdownByParticipant[t.participantId] ?? [],
   }));
-  },
-  ["leaderboard"],
-  { tags: ["leaderboard"] }
-);
+}
 
 export async function seedScoringRules() {
   const newRules = [

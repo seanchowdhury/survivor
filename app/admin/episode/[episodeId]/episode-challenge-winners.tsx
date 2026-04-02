@@ -40,7 +40,7 @@ type FormattedChallenge = {
   individualChallenge: boolean;
   firstPlace: Winner[];
   secondPlace: Winner[];
-  rewardRecipients: Winner[];
+  rewardRecipients: { castMemberId: number; castMemberName: string }[];
 };
 
 function formatChallenges(
@@ -50,15 +50,11 @@ function formatChallenges(
     ([challengeId, challenge]) => {
       const firstPlace: Winner[] = [];
       const secondPlace: Winner[] = [];
-      const rewardRecipients: Winner[] = [];
       challenge.winners.forEach((winner) => {
         if (winner.placement == 1) {
           firstPlace.push(winner);
         } else {
           secondPlace.push(winner);
-        }
-        if (winner.gotReward) {
-          rewardRecipients.push(winner);
         }
       });
       return {
@@ -69,7 +65,7 @@ function formatChallenges(
         individualChallenge: challenge.individualChallenge,
         firstPlace,
         secondPlace,
-        rewardRecipients,
+        rewardRecipients: challenge.rewardRecipients,
       };
     },
   );
@@ -213,16 +209,18 @@ function RewardRecipientsComboBox({
   onValueChange: (names: string[]) => void;
 }) {
   const anchor = useComboboxAnchor();
-  const defaultValue = challenge.rewardRecipients.map((w) => w.castMemberName);
+  const [value, setValue] = useState<string[]>(
+    challenge.rewardRecipients.map((w) => w.castMemberName),
+  );
 
   return (
     <Combobox
       multiple
       autoHighlight
-      defaultValue={defaultValue}
+      value={value}
       items={castMemberNames}
       itemToStringValue={(name) => name}
-      onValueChange={onValueChange}
+      onValueChange={(names) => { setValue(names); onValueChange(names); }}
     >
       <ComboboxChips ref={anchor} className="w-full max-w-xs">
         <ComboboxValue>
@@ -262,19 +260,18 @@ function WinnersComboBox({
   onValueChange: (names: string[]) => void;
 }) {
   const anchor = useComboboxAnchor();
-
-  const defaultValue = (
-    firstPlace ? challenge.firstPlace : challenge.secondPlace
-  ).map((w) => w.castMemberName);
+  const [value, setValue] = useState<string[]>(
+    (firstPlace ? challenge.firstPlace : challenge.secondPlace).map((w) => w.castMemberName),
+  );
 
   return (
     <Combobox
       multiple
       autoHighlight
-      defaultValue={defaultValue}
+      value={value}
       items={castMemberNames}
       itemToStringValue={(name) => name}
-      onValueChange={onValueChange}
+      onValueChange={(names) => { setValue(names); onValueChange(names); }}
     >
       <ComboboxChips ref={anchor} className="w-full max-w-xs">
         <ComboboxValue>
