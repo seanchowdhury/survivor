@@ -41,7 +41,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex min-h-screen flex-col`}
       >
         <NeonAuthUIProvider
           // @ts-expect-error: Typing issue from neon
@@ -50,7 +50,7 @@ export default function RootLayout({
           emailOTP
         >
           <SiteHeader />
-          <div className="pt-14">
+          <div className="pt-14 flex-1">
             {children}
           </div>
           <footer className="text-center py-4 text-xs text-gray-500 bg-gray-800">
