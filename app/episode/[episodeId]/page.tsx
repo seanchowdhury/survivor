@@ -239,10 +239,16 @@ export default async function EpisodeShowPage({
                     {council.votes.map((v, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm">
                         <span className="w-36 truncate">{v.voterName}</span>
-                        <span className="text-gray-500">→</span>
-                        <span className="text-gray-300">
-                          {v.votedForName ?? <span className="text-gray-600">—</span>}
-                        </span>
+                        {v.shotInTheDark ? (
+                          <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">Shot in the Dark</span>
+                        ) : (
+                          <>
+                            <span className="text-gray-500">→</span>
+                            <span className="text-gray-300">
+                              {v.votedForName ?? <span className="text-gray-600">—</span>}
+                            </span>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>

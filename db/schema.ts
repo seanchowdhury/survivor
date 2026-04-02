@@ -120,6 +120,7 @@ export const tribalVotesTable = pgTable("tribal_votes_table", {
     .references(() => castMembersTable.id),
   votedForId: integer("voted_for_id")
     .references(() => castMembersTable.id),
+  shotInTheDark: boolean("shot_in_the_dark").notNull().default(false),
 });
 
 export type SelectTribalVotes = typeof tribalVotesTable.$inferSelect;

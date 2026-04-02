@@ -44,18 +44,20 @@ export default function EpisodeFantasy({ players, currentEpisodeNumber }: Props)
     return <p className="text-gray-500 text-sm">No scores recorded yet.</p>;
   }
 
+  const activePlayers = players.filter(
+    (p) =>
+      p.eliminatedEpisodeNumber === null ||
+      p.eliminatedEpisodeNumber >= currentEpisodeNumber,
+  );
+
   return (
     <Accordion type="multiple" className="flex flex-col gap-1 border-0">
-      {players.map((p, i) => {
-        const eliminated =
-          p.eliminatedEpisodeNumber !== null &&
-          p.eliminatedEpisodeNumber <= currentEpisodeNumber;
-
+      {activePlayers.map((p, i) => {
         return (
           <AccordionItem
             key={p.castMemberId}
             value={String(p.castMemberId)}
-            className={`border-gray-600 rounded-lg bg-gray-700/50 px-3 ${eliminated ? "opacity-40" : ""}`}
+            className="border-gray-600 rounded-lg bg-gray-700/50 px-3"
           >
             <AccordionTrigger className="py-3 hover:no-underline [&>svg]:text-gray-400">
               <div className="flex items-center gap-3 flex-1 mr-3">
@@ -66,7 +68,7 @@ export default function EpisodeFantasy({ players, currentEpisodeNumber }: Props)
                     alt={p.name}
                     width={32}
                     height={32}
-                    className={`rounded-full object-cover shrink-0 ${eliminated ? "grayscale" : ""}`}
+                    className="rounded-full object-cover shrink-0"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-gray-600 shrink-0" />

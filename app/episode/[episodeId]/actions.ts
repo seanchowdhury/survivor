@@ -152,7 +152,7 @@ export type TribalVoteRow = {
   sequence: number;
   eliminatedName: string | null;
   blindsided: boolean;
-  votes: { voterName: string; votedForName: string | null }[];
+  votes: { voterName: string; votedForName: string | null; shotInTheDark: boolean }[];
 };
 
 export type EpisodeFantasyRow = {
@@ -234,6 +234,7 @@ export function getTribalVotes(episodeId: number): Promise<TribalVoteRow[]> {
       voterName: voter.name,
       votedForName: votedFor.name,
       eliminatedName: eliminated.name,
+      shotInTheDark: tribalVotesTable.shotInTheDark,
     })
     .from(tribalVotesTable)
     .innerJoin(tribalCouncilsTable, eq(tribalCouncilsTable.id, tribalVotesTable.tribalCouncilId))
@@ -258,6 +259,7 @@ export function getTribalVotes(episodeId: number): Promise<TribalVoteRow[]> {
       councilMap[row.councilId].votes.push({
         voterName: row.voterName,
         votedForName: row.votedForName ?? null,
+        shotInTheDark: row.shotInTheDark,
       });
     }
   }

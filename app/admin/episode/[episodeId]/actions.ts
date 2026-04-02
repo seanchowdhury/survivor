@@ -267,6 +267,7 @@ export type VoteWithCouncil = {
   voteId: number;
   voterId: number;
   votedForId: number | null;
+  shotInTheDark: boolean;
   tribalCouncilId: number;
   tribe: string;
   sequence: number;
@@ -290,6 +291,7 @@ export async function getEpisodeVoteData(
     voteId: r.tribal_votes_table.id,
     voterId: r.tribal_votes_table.voterId,
     votedForId: r.tribal_votes_table.votedForId,
+    shotInTheDark: r.tribal_votes_table.shotInTheDark,
     tribalCouncilId: r.tribal_votes_table.tribalCouncilId,
     tribe: r.tribal_councils_table.tribe,
     sequence: r.tribal_councils_table.sequence,
@@ -336,6 +338,25 @@ export async function deleteTribalVote(voteId: number) {
 
   await db.delete(tribalVotesTable).where(eq(tribalVotesTable.id, voteId));
 
+  if (row) await recalculateEpisodeScores(row.episodeId);
+}
+
+export async function addTribalAttendee(
+  councilId: number,
+  castMemberId: number,
+  shotInTheDark: boolean,
+) {
+  await db.insert(tribalVotesTable).values({
+    tribalCouncilId: councilId,
+    voterId: castMemberId,
+    votedForId: null,
+    shotInTheDark,
+  });
+
+  const [row] = await db
+    .select({ episodeId: tribalCouncilsTable.episodeId })
+    .from(tribalCouncilsTable)
+    .where(eq(tribalCouncilsTable.id, councilId));
   if (row) await recalculateEpisodeScores(row.episodeId);
 }
 
