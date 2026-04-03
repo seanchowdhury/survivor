@@ -51,7 +51,7 @@ export default function LeagueChat({
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastTypingSent = useRef(0);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [connecting, setConnecting] = useState<boolean>(true);
   const [nextEpisode, setNextEpisode] = useState<number | null>(null);
@@ -63,10 +63,10 @@ export default function LeagueChat({
     getNextEpisodeNumber().then(setNextEpisode);
   }, []);
 
-  // useEffect(() => {
-  //   const id = setInterval(() => setOpen(isChatOpen()), 10000);
-  //   return () => clearInterval(id);
-  // }, []);
+  useEffect(() => {
+    const id = setInterval(() => setOpen(isChatOpen()), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
