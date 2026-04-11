@@ -37,6 +37,7 @@ import {
 } from "@/db/schema";
 import { takeUniqueOrThrow } from "@/db/helpers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getEpisodeContent } from "@/app/admin/lib/wiki";
 import {
   recalculateEpisodeScores,
@@ -506,15 +507,15 @@ export async function processEpisodeWiki(
     episodeRecord = await getEpisodeByNumber(episodeNumber);
   } catch (e: unknown) {
     const error = e as { message: string };
-    if (error.message == "Found no value") {
-      try {
-        await insertEpisode(episodeInfo, title);
-        episodeRecord = await getEpisodeByNumber(episodeNumber);
-      } catch (_) {
-        return { error: "Error adding episode to database" };
-      }
+    if (error.message !== "Found no value") {
+      return { error: "Error getting episode from database" };
     }
-    return { error: "Error getting episode from database" };
+    try {
+      await insertEpisode(episodeInfo, title);
+      episodeRecord = await getEpisodeByNumber(episodeNumber);
+    } catch (_) {
+      return { error: "Error adding episode to database" };
+    }
   }
 
   const castMembers = await getCastMembers();
@@ -579,6 +580,13 @@ export async function processEpisodeWiki(
 
   await recalculateEpisodeScores(episodeRecord.id);
   await recalculateSeasonScores();
+
+  revalidatePath("/admin/participants");
+  revalidatePath("/admin/leaderboard");
+  revalidatePath("/season");
+  revalidatePath("/leaderboard");
+  revalidatePath("/episode/[episodeId]", "page");
+  revalidatePath("/admin/episode/[episodeId]", "page");
 
   redirect("/admin/episode/" + episodeRecord.id);
 }

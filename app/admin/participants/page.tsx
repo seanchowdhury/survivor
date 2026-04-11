@@ -10,6 +10,8 @@ import {
 } from "./actions";
 import ParticipantRosterEditor from "./participant-roster-editor";
 
+export const dynamic = "force-dynamic";
+
 export default async function ParticipantsPage() {
   const [participants, castMembers, episodes] = await Promise.all([
     getParticipants(),

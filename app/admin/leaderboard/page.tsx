@@ -1,6 +1,8 @@
 import { getLeaderboard, seedScoringRules, recalculateAllEpisodes } from "./actions";
 import { RecalculateButton } from "./recalculate-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeaderboardPage() {
   // Ensure scoring rules are seeded
   await seedScoringRules();
